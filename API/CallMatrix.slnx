@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="CallMatrix.BLL/CallMatrix.BLL.csproj" />
+  <Project Path="CallMatrix.DAL/CallMatrix.DAL.csproj" />
+  <Project Path="CallMatrix.DTO/CallMatrix.DTO.csproj" />
+  <Project Path="CallMatrix.Utilities/CallMatrix.Utilities.csproj" />
+  <Project Path="CallMatrix/CallMatrix.csproj" />
+</Solution>
