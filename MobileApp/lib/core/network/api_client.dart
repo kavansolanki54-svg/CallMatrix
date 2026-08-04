@@ -62,12 +62,12 @@ class ApiClient {
       };
       final response = await refreshDio.post(
         '${ApiConstants.baseUrl}${ApiConstants.refreshToken}',
-        data: {'refreshToken': refreshToken},
+        data: {'token': refreshToken},
       );
 
       if (response.statusCode == 200 && response.data['success'] == true) {
         final data = response.data['data'];
-        await _storage.write(key: 'accessToken', value: data['accessToken']);
+        await _storage.write(key: 'accessToken', value: data['token'] ?? data['accessToken']);
         await _storage.write(key: 'refreshToken', value: data['refreshToken']);
         return true;
       }

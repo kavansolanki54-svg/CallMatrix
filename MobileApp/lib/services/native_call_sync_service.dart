@@ -51,6 +51,7 @@ class NativeCallSyncService {
 
       final prefs = await SharedPreferences.getInstance();
       final customPath = prefs.getString('custom_recording_path') ?? '';
+      final userDeviceId = prefs.getInt('user_device_id') ?? 0;
 
       final now = DateTime.now();
       final todayStart = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
@@ -82,7 +83,7 @@ class NativeCallSyncService {
           'callType': log['callType'] ?? 'Outgoing',
           'duration': duration,
           'callDateTime': toLocalIso(dt),
-          'deviceId': 0,
+          'deviceId': userDeviceId,
           'customerId': 0,
         };
       }).toList();
@@ -93,7 +94,7 @@ class NativeCallSyncService {
       // Primary sync call logs to backend API
       final syncPayload = {
         'companyId': 0,
-        'deviceId': 0,
+        'deviceId': userDeviceId,
         'calls': formattedLogs,
       };
 

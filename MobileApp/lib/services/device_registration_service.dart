@@ -1,4 +1,5 @@
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/api_constants.dart';
 import '../core/network/api_client.dart';
 
@@ -20,7 +21,7 @@ class DeviceRegistrationService {
 
       final dio = ApiClient.instance.dio;
 
-      await dio.post(ApiConstants.deviceRegister, data: {
+      final res = await dio.post(ApiConstants.deviceRegister, data: {
         'employeeId': employeeId,
         'deviceId': deviceId,
         'manufacturer': manufacturer,
@@ -31,6 +32,17 @@ class DeviceRegistrationService {
         'batteryPercentage': batteryPercentage,
         'timeZone': DateTime.now().timeZoneName,
       });
+
+      if (res.statusCode == 200 || res.statusCode == 201) {
+        final data = res.data['data'];
+        if (data != null) {
+          final userDeviceId = data['userDeviceId'] as int?;
+          if (userDeviceId != null) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setInt('user_device_id', userDeviceId);
+          }
+        }
+      }
     } catch (_) {
       // Guard against non-blocking registration issues
     }

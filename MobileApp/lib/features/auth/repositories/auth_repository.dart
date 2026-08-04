@@ -20,8 +20,8 @@ class AuthRepository {
 
     final data = json['data'];
     final user = UserModel.fromJson(data['user']);
-    final accessToken = data['accessToken'] as String;
-    final refreshToken = data['refreshToken'] as String? ?? '';
+    final accessToken = (data['token'] ?? data['accessToken']) as String;
+    final refreshToken = (data['refreshToken'] ?? '') as String;
 
     return (user: user, accessToken: accessToken, refreshToken: refreshToken);
   }
