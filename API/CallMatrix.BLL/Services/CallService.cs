@@ -104,11 +104,11 @@ namespace CallMatrix.BLL.Services
                 var month = targetDate.ToString("MM");
                 var day = targetDate.ToString("dd");
 
-                // Clean phone number for safety in folder naming
+                // Clean phone number for safety in folder/file naming
                 var cleanPhone = string.IsNullOrEmpty(call.PhoneNumber) ? "Unknown" : call.PhoneNumber.Replace("+", "").Replace(" ", "").Replace("-", "");
 
-                // Build relative directory structure: recordings/Company_X/Employee_Y/Year/Month/Day/Phone
-                var relativeDir = System.IO.Path.Combine("recordings", $"Company_{call.CompanyId}", $"Employee_{employeeId}", year, month, day, cleanPhone);
+                // Build relative directory structure: recordings/Company_X/Employee_Y/Year/Month/Day
+                var relativeDir = System.IO.Path.Combine("recordings", $"Company_{call.CompanyId}", $"Employee_{employeeId}", year, month, day);
                 var uploadsFolder = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", relativeDir);
 
                 if (!System.IO.Directory.Exists(uploadsFolder))
@@ -119,8 +119,8 @@ namespace CallMatrix.BLL.Services
                 var extension = string.IsNullOrEmpty(fileExtension) ? ".mp3" : fileExtension;
                 if (!extension.StartsWith('.')) extension = "." + extension;
 
-                var uniqueFileName = $"{Guid.NewGuid()}_{request.FileName}{extension}";
-                filePath = System.IO.Path.Combine(uploadsFolder, uniqueFileName);
+                var fileName = $"{cleanPhone}{extension}";
+                filePath = System.IO.Path.Combine(uploadsFolder, fileName);
 
                 using (var targetStream = new System.IO.FileStream(filePath, System.IO.FileMode.Create))
                 {
@@ -128,7 +128,7 @@ namespace CallMatrix.BLL.Services
                 }
 
                 // Construct static file URL
-                var relativeFileUrl = System.IO.Path.Combine(relativeDir, uniqueFileName).Replace("\\", "/");
+                var relativeFileUrl = System.IO.Path.Combine(relativeDir, fileName).Replace("\\", "/");
                 fileUrl = $"/{relativeFileUrl}";
             }
 
