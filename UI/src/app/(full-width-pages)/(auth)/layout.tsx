@@ -21,7 +21,7 @@ export default function AuthLayout({
               {/* <!-- ===== Common Grid Shape Start ===== --> */}
               <GridShape />
               <div className="flex flex-col items-center max-w-sm">
-                <Link href="/" className="flex items-center gap-3 mb-4">
+                <Link href="/signin" className="flex items-center gap-3 mb-4">
                   <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-500 to-indigo-500 flex items-center justify-center text-white font-extrabold text-2xl shadow-lg shadow-brand-500/30">
                     CM
                   </div>
