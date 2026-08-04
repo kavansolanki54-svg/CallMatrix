@@ -41,7 +41,8 @@ namespace CallMatrix.DTO.Mappings
             CreateMap<CreateTaskRequest, TaskMaster>();
 
             // Call Mappings
-            CreateMap<CallMaster, CallLogResponse>();
+            CreateMap<CallMaster, CallLogResponse>()
+                .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => src.Employee.EmployeeName));
             CreateMap<CreateCallLogRequest, CallMaster>();
             CreateMap<CallRecording, CallRecordingResponse>();
             CreateMap<UploadCallRecordingRequest, CallRecording>();
