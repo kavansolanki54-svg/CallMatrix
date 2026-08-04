@@ -9,22 +9,16 @@ export default function DevicesPage() {
 
   const fetchDevices = async () => {
     setLoading(true);
-    const fallbackData = [
-      { userDeviceId: 1, modelName: "Samsung Galaxy S23", osVersion: "Android 14", imeiNumber: "864291048291039", employeeName: "Alex Vance", isApproved: true, isBlocked: false },
-      { userDeviceId: 2, modelName: "Google Pixel 8", osVersion: "Android 14", imeiNumber: "359104810294820", employeeName: "Sarah Connor", isApproved: false, isBlocked: false },
-      { userDeviceId: 3, modelName: "OnePlus 11", osVersion: "Android 13", imeiNumber: "990011223344556", employeeName: "John Matrix", isApproved: false, isBlocked: true },
-    ];
-    
     try {
       const res = await deviceService.getDevices();
       if (res?.success && res.data) {
         setDevices(res.data.items || res.data);
       } else {
-        setDevices(fallbackData);
+        setDevices([]);
       }
     } catch (err) {
       console.error("Failed to fetch devices", err);
-      setDevices(fallbackData);
+      setDevices([]);
     } finally {
       setLoading(false);
     }
@@ -62,6 +56,8 @@ export default function DevicesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {loading ? (
           <div className="col-span-full py-8 text-center text-gray-400">Loading registered devices...</div>
+        ) : devices.length === 0 ? (
+          <div className="col-span-full py-8 text-center text-gray-400">No registered devices found</div>
         ) : devices.map((dev) => (
           <div key={dev.userDeviceId} className="p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
