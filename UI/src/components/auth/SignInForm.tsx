@@ -37,7 +37,16 @@ export default function SignInForm() {
       }
     } catch (err: any) {
       console.error("Login failed", err);
-      setError(err.response?.data?.message || "Failed to connect to CallMatrix Web API");
+      const status = err.response?.status;
+      const serverMessage = err.response?.data?.message || err.response?.data?.Message;
+      
+      if (status === 404) {
+        setError(serverMessage || "User not found");
+      } else if (status === 401) {
+        setError(serverMessage || "username and password is invalid");
+      } else {
+        setError(serverMessage || "Failed to connect to CallMatrix Web API");
+      }
     } finally {
       setLoading(false);
     }
