@@ -29,6 +29,51 @@ export default function CallsPage() {
     return `${y}-${m}-${day} ${hr}:${min}`;
   };
 
+  const formatTime = (dateStr: string) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const hr = d.getHours().toString().padStart(2, "0");
+    const min = d.getMinutes().toString().padStart(2, "0");
+    return `${hr}:${min}`;
+  };
+
+  const groupCallsByDate = (callList: any[]) => {
+    const groups: Record<string, any[]> = {};
+    callList.forEach((call) => {
+      if (!call.callDateTime) return;
+      const dateKey = call.callDateTime.split("T")[0];
+      if (!groups[dateKey]) {
+        groups[dateKey] = [];
+      }
+      groups[dateKey].push(call);
+    });
+    return groups;
+  };
+
+  const formatGroupHeaderDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    
+    const today = new Date();
+    const isToday = date.getDate() === today.getDate() &&
+                    date.getMonth() === today.getMonth() &&
+                    date.getFullYear() === today.getFullYear();
+                    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.getDate() === yesterday.getDate() &&
+                        date.getMonth() === yesterday.getMonth() &&
+                        date.getFullYear() === yesterday.getFullYear();
+
+    const options: Intl.DateTimeFormatOptions = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
+    const formatted = date.toLocaleDateString("en-US", options);
+
+    if (isToday) return `Today - ${formatted}`;
+    if (isYesterday) return `Yesterday - ${formatted}`;
+    return formatted;
+  };
+
   const fetchCalls = async () => {
     setLoading(true);
     try {
@@ -79,7 +124,7 @@ export default function CallsPage() {
                 <th className="px-6 py-4">Phone Number</th>
                 <th className="px-6 py-4">Agent</th>
                 <th className="px-6 py-4">Duration</th>
-                <th className="px-6 py-4">Date & Time</th>
+                <th className="px-6 py-4">Time</th>
                 <th className="px-6 py-4 text-right">Recording</th>
               </tr>
             </thead>
@@ -92,51 +137,69 @@ export default function CallsPage() {
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-400">No call logs found</td>
                 </tr>
-              ) : calls.map((call) => {
-                const cType = call.callType || "Incoming";
-                return (
-                  <tr key={call.callId} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-                    <td className="px-6 py-4">
-                      <span className="flex items-center gap-1.5 font-medium text-xs">
-                        {cType === "Incoming" ? <PhoneIncoming className="w-4 h-4 text-emerald-500" /> :
-                         cType === "Outgoing" ? <PhoneOutgoing className="w-4 h-4 text-blue-500" /> :
-                         <PhoneMissed className="w-4 h-4 text-red-500" />}
-                        {cType}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-gray-900 dark:text-white">{call.phoneNumber}</div>
-                      {call.contactName && (
-                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{call.contactName}</div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">{call.employeeName || `Employee #${call.employeeId}`}</td>
-                    <td className="px-6 py-4 flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5 text-gray-400" /> {formatDuration(call.duration)}
-                    </td>
-                    <td className="px-6 py-4 text-gray-400 text-xs">{formatDate(call.callDateTime)}</td>
-                    <td className="px-6 py-4 text-right">
-                      {call.hasRecording && call.recordingUrl ? (
-                        <button
-                          onClick={() => {
-                            const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5164/api";
-                            const baseUrl = apiBase.replace(/\/api\/?$/, "");
-                            const fullUrl = call.recordingUrl.startsWith("http") 
-                              ? call.recordingUrl 
-                              : `${baseUrl}${call.recordingUrl}`;
-                            setActiveRecordingUrl(fullUrl);
-                          }}
-                          className="inline-block p-2 text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/50 rounded-full hover:bg-brand-100 transition"
-                        >
-                          <Play className="w-3.5 h-3.5 fill-current" />
-                        </button>
-                      ) : (
-                        <span className="text-xs text-gray-400">N/A</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
+              ) : (
+                Object.entries(groupCallsByDate(calls))
+                  .sort(([a], [b]) => b.localeCompare(a))
+                  .map(([dateKey, dateCalls]) => (
+                    <React.Fragment key={dateKey}>
+                      {/* Day Group Sub-Header */}
+                      <tr className="bg-gray-50/50 dark:bg-gray-800/10 border-y border-gray-100 dark:border-gray-800/60">
+                        <td colSpan={6} className="px-6 py-3 font-semibold text-xs text-brand-600 dark:text-brand-400 tracking-wider">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-brand-500" />
+                            {formatGroupHeaderDate(dateKey)}
+                          </div>
+                        </td>
+                      </tr>
+                      {/* Call Rows for this day */}
+                      {dateCalls.map((call) => {
+                        const cType = call.callType || "Incoming";
+                        return (
+                          <tr key={call.callId} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
+                            <td className="px-6 py-4">
+                              <span className="flex items-center gap-1.5 font-medium text-xs">
+                                {cType === "Incoming" ? <PhoneIncoming className="w-4 h-4 text-emerald-500" /> :
+                                 cType === "Outgoing" ? <PhoneOutgoing className="w-4 h-4 text-blue-500" /> :
+                                 <PhoneMissed className="w-4 h-4 text-red-500" />}
+                                {cType}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="font-semibold text-gray-900 dark:text-white">{call.phoneNumber}</div>
+                              {call.contactName && (
+                                <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{call.contactName}</div>
+                              )}
+                            </td>
+                            <td className="px-6 py-4">{call.employeeName || `Employee #${call.employeeId}`}</td>
+                            <td className="px-6 py-4 flex items-center gap-1">
+                              <Clock className="w-3.5 h-3.5 text-gray-400" /> {formatDuration(call.duration)}
+                            </td>
+                            <td className="px-6 py-4 text-gray-400 text-xs font-mono">{formatTime(call.callDateTime)}</td>
+                            <td className="px-6 py-4 text-right">
+                              {call.hasRecording && call.recordingUrl ? (
+                                <button
+                                  onClick={() => {
+                                    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5164/api";
+                                    const baseUrl = apiBase.replace(/\/api\/?$/, "");
+                                    const fullUrl = call.recordingUrl.startsWith("http") 
+                                      ? call.recordingUrl 
+                                      : `${baseUrl}${call.recordingUrl}`;
+                                    setActiveRecordingUrl(fullUrl);
+                                  }}
+                                  className="inline-block p-2 text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/50 rounded-full hover:bg-brand-100 transition"
+                                >
+                                  <Play className="w-3.5 h-3.5 fill-current" />
+                                </button>
+                              ) : (
+                                <span className="text-xs text-gray-400">N/A</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </React.Fragment>
+                  ))
+              )}
             </tbody>
           </table>
         </div>
