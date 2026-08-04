@@ -72,7 +72,7 @@ namespace CallMatrix.BLL.Services
             var user = await _unitOfWork.Employees.GetByEmailAsync(request.Email);
             if (user == null)
             {
-                return ApiResponse<LoginResponse>.Fail("Invalid email or password", 401);
+                return ApiResponse<LoginResponse>.Fail("User not found", 404);
             }
 
             // Password Verification: Supports identity PBKDF2 hash, legacy fallback, or demo pass
@@ -88,7 +88,7 @@ namespace CallMatrix.BLL.Services
 
             if (!isPasswordCorrect)
             {
-                return ApiResponse<LoginResponse>.Fail("Invalid email or password", 401);
+                return ApiResponse<LoginResponse>.Fail("Incorrect password", 401);
             }
 
             var role = user.RoleId.HasValue ? await _unitOfWork.Roles.GetByIdAsync(user.RoleId.Value) : null;

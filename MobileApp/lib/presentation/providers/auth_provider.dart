@@ -107,10 +107,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       String msg = 'Connection error. Please try again.';
       if (e is DioException) {
-        if (e.response?.statusCode == 401) {
-          msg = 'Invalid email or password. Please check your credentials.';
+        final serverMessage = e.response?.data is Map 
+            ? (e.response?.data['message'] ?? e.response?.data['Message'])?.toString() 
+            : null;
+
+        if (e.response?.statusCode == 404) {
+          msg = serverMessage ?? 'User not found. Please check your email.';
+        } else if (e.response?.statusCode == 401) {
+          msg = serverMessage ?? 'Incorrect password. Please try again.';
         } else if (e.response?.statusCode == 400) {
-          msg = e.response?.data['message'] ?? 'Invalid request. Please try again.';
+          msg = serverMessage ?? 'Invalid request. Please try again.';
         } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError) {
           msg = 'Cannot connect to the server. Please check your internet connection.';
         } else {
