@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -169,18 +170,27 @@ class NativeCallSyncService {
                     final fileSize = file.lengthSync();
                     final duration = log['duration'] is int ? log['duration'] as int : 0;
 
-                    final recordingPayload = {
-                      'companyId': 0,
-                      'callId': callId,
+                    final recordingPayload = FormData.fromMap({
+                      'companyId': '0',
+                      'callId': callId.toString(),
                       'fileName': fileName,
                       'filePath': file.path,
                       'fileUrl': file.path,
-                      'duration': duration,
-                      'fileSize': fileSize,
+                      'duration': duration.toString(),
+                      'fileSize': fileSize.toString(),
                       'recordingDate': logDt.toIso8601String(),
-                    };
+                      'file': await MultipartFile.fromFile(file.path, filename: fileName),
+                    });
 
-                    await dio.post(ApiConstants.uploadRecording, data: recordingPayload);
+                    await dio.post(
+                      ApiConstants.uploadRecording,
+                      data: recordingPayload,
+                      options: Options(
+                        headers: {
+                          'Content-Type': 'multipart/form-data',
+                        },
+                      ),
+                    );
                   }
                 }
               }

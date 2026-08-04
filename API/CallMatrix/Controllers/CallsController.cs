@@ -54,13 +54,16 @@ namespace CallMatrix.Controllers
 
         [HttpPost("recording")]
         [RequirePermission("Call Recordings", "CanUpload")]
-        public async Task<IActionResult> UploadCallRecording([FromBody] UploadCallRecordingRequest request)
+        public async Task<IActionResult> UploadCallRecording([FromForm] UploadCallRecordingRequest request, IFormFile? file)
         {
             int employeeId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
             int companyId = int.Parse(User.FindFirst("CompanyId")!.Value);
             request.CompanyId = companyId;
 
-            var result = await _callService.SaveCallRecordingAsync(request, employeeId);
+            System.IO.Stream? fileStream = file?.OpenReadStream();
+            string? fileExtension = file != null ? System.IO.Path.GetExtension(file.FileName) : null;
+
+            var result = await _callService.SaveCallRecordingAsync(request, fileStream, fileExtension, employeeId);
             return StatusCode(result.StatusCode, result);
         }
 

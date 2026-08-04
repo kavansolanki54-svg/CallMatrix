@@ -85,12 +85,37 @@ namespace CallMatrix.BLL.Services
             }
         }
 
-        public async Task<ApiResponse<CallRecordingResponse>> SaveCallRecordingAsync(UploadCallRecordingRequest request, int employeeId)
+        public async Task<ApiResponse<CallRecordingResponse>> SaveCallRecordingAsync(UploadCallRecordingRequest request, System.IO.Stream? fileStream, string? fileExtension, int employeeId)
         {
             var call = await _unitOfWork.Calls.GetByIdAsync(request.CallId);
             if (call == null || !call.IsActive)
             {
                 return ApiResponse<CallRecordingResponse>.Fail("Call record not found", 404);
+            }
+
+            string? fileUrl = request.FileUrl;
+            string? filePath = request.FilePath;
+
+            if (fileStream != null && fileStream.Length > 0)
+            {
+                var uploadsFolder = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "recordings");
+                if (!System.IO.Directory.Exists(uploadsFolder))
+                {
+                    System.IO.Directory.CreateDirectory(uploadsFolder);
+                }
+
+                var extension = string.IsNullOrEmpty(fileExtension) ? ".mp3" : fileExtension;
+                if (!extension.StartsWith('.')) extension = "." + extension;
+
+                var uniqueFileName = $"{Guid.NewGuid()}_{request.FileName}{extension}";
+                filePath = System.IO.Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var targetStream = new System.IO.FileStream(filePath, System.IO.FileMode.Create))
+                {
+                    await fileStream.CopyToAsync(targetStream);
+                }
+
+                fileUrl = $"/recordings/{uniqueFileName}";
             }
 
             var entity = _mapper.Map<CallRecording>(request);
@@ -99,12 +124,14 @@ namespace CallMatrix.BLL.Services
             entity.CreatedAt = DateTime.Now;
             entity.CreatedBy = employeeId;
             entity.IsActive = true;
+            entity.FilePath = filePath;
+            entity.FileUrl = fileUrl;
 
             await _unitOfWork.CallRecordings.AddAsync(entity);
             await _unitOfWork.SaveChangesAsync();
 
             var dto = _mapper.Map<CallRecordingResponse>(entity);
-            return ApiResponse<CallRecordingResponse>.Ok(dto, "Call recording metadata saved successfully", 201);
+            return ApiResponse<CallRecordingResponse>.Ok(dto, "Call recording saved successfully", 201);
         }
 
         public async Task<ApiResponse<CallAnalyticsSummaryResponse>> GetAnalyticsSummaryAsync(int companyId, DateTime? startDate, DateTime? endDate)
