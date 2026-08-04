@@ -7,6 +7,7 @@ namespace CallMatrix.DTO.Common
         public string? Search { get; set; }
         public string? SortBy { get; set; }
         public string? SortOrder { get; set; } = "ASC";
+        public DateTime? Date { get; set; }
         public Dictionary<string, object>? Filters { get; set; }
     }
 }

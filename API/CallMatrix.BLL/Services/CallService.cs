@@ -24,6 +24,10 @@ namespace CallMatrix.BLL.Services
         {
             var filters = request.Filters ?? new Dictionary<string, object>();
             filters["CompanyId"] = companyId;
+            if (request.Date.HasValue)
+            {
+                filters["Date"] = request.Date.Value;
+            }
 
             var (items, totalCount) = await _unitOfWork.Calls.GetPagedAsync(
                 request.Page,
@@ -139,7 +143,7 @@ namespace CallMatrix.BLL.Services
                 }
                 else
                 {
-                    uploadsFolder = System.IO.Path.Combine(baseDir, "wwwroot", relativeDir);
+                    uploadsFolder = System.IO.Path.Combine(baseDir, relativeDir);
                 }
 
                 if (!System.IO.Directory.Exists(uploadsFolder))
@@ -242,9 +246,10 @@ namespace CallMatrix.BLL.Services
             int missed = callList.Count(c => c.CallType.Equals("Missed", StringComparison.OrdinalIgnoreCase));
             int answered = incoming + outgoing;
 
-            // 6. Weekly series (last 7 days)
+            // 6. Weekly series (last 7 days ending on the date of the latest call)
+            var endDate = callList.Any() ? callList.Max(c => c.CallDateTime).Date : DateTime.Today;
             var last7Days = Enumerable.Range(0, 7)
-                .Select(i => DateTime.Today.AddDays(-6 + i))
+                .Select(i => endDate.AddDays(-6 + i))
                 .ToList();
 
             var weeklyCallVolume = last7Days

@@ -30,6 +30,12 @@ namespace CallMatrix.DAL.Repositories.Implementations
                 query = query.Where(c => c.CompanyId == companyId);
             }
 
+            if (filters != null && filters.TryGetValue("Date", out var dateVal) && dateVal is DateTime dateFilter)
+            {
+                var targetDate = dateFilter.Date;
+                query = query.Where(c => c.CallDateTime.Date == targetDate);
+            }
+
             if (!string.IsNullOrEmpty(search))
             {
                 query = query.Where(c => c.PhoneNumber.Contains(search) || (c.ContactName != null && c.ContactName.Contains(search)));

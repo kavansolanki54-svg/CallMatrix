@@ -170,8 +170,12 @@ export const leadService = {
 };
 
 export const callService = {
-  getCalls: async (page = 1, pageSize = 10, search = '') => {
-    const res = await apiClient.get(`/calls?page=${page}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`);
+  getCalls: async (page = 1, pageSize = 10, search = "", date?: string) => {
+    let url = `/calls?page=${page}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`;
+    if (date) {
+      url += `&date=${encodeURIComponent(date)}`;
+    }
+    const res = await apiClient.get(url);
     return res.data;
   },
   getAnalytics: async (startDate?: string, endDate?: string) => {

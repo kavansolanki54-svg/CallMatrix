@@ -45,13 +45,32 @@ var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProv
 provider.Mappings[".3gp"] = "audio/3gpp";
 provider.Mappings[".3gpp"] = "audio/3gpp";
 provider.Mappings[".amr"] = "audio/amr";
-provider.Mappings[".m4a"] = "audio/x-m4a";
+provider.Mappings[".m4a"] = "audio/mp4";
 provider.Mappings[".mp3"] = "audio/mpeg";
 provider.Mappings[".wav"] = "audio/wav";
 provider.Mappings[".ogg"] = "audio/ogg";
 
 app.UseStaticFiles(new StaticFileOptions
 {
+    ContentTypeProvider = provider,
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Headers", "*");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "*");
+    }
+});
+
+var recordingsPath = System.IO.Path.Combine(app.Environment.ContentRootPath, "recordings");
+if (!System.IO.Directory.Exists(recordingsPath))
+{
+    System.IO.Directory.CreateDirectory(recordingsPath);
+}
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(recordingsPath),
+    RequestPath = "/recordings",
     ContentTypeProvider = provider,
     OnPrepareResponse = ctx =>
     {

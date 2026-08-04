@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { callService } from "@/lib/services";
-import { Search, Play, Pause, Clock, Calendar, ShieldAlert, ArrowDownToLine, PhoneCall, Disc } from "lucide-react";
+import { Search, Play, Pause, Clock, Calendar, ShieldAlert, ArrowDownToLine, PhoneCall, Disc, PhoneIncoming, PhoneOutgoing, PhoneMissed } from "lucide-react";
 
 export default function RecordingsPage() {
   const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5164/api";
@@ -13,6 +13,13 @@ export default function RecordingsPage() {
   const [page, setPage] = useState(1);
   const [activeRecordingUrl, setActiveRecordingUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = (today.getMonth() + 1).toString().padStart(2, "0");
+    const d = today.getDate().toString().padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  });
 
   const formatDuration = (secs: number) => {
     if (!secs) return "00:00";
@@ -36,8 +43,9 @@ export default function RecordingsPage() {
   const fetchRecordings = async () => {
     setLoading(true);
     try {
-      // Fetch larger page size to ensure we get plenty of recording items
-      const res = await callService.getCalls(page, 10, search);
+      // Fetch a larger page size (100) since we are filtering by date,
+      // ensuring we load all records for the selected day in one view.
+      const res = await callService.getCalls(page, 100, search, selectedDate);
       if (res?.success && res.data) {
         const items = res.data.items || res.data;
         // Filter for items containing call recordings
@@ -56,7 +64,7 @@ export default function RecordingsPage() {
 
   useEffect(() => {
     fetchRecordings();
-  }, [page, search]);
+  }, [page, search, selectedDate]);
 
   const handlePlayToggle = (url: string) => {
     const fullUrl = url.startsWith("http") ? url : `${baseUrl}${url}`;
@@ -67,6 +75,32 @@ export default function RecordingsPage() {
       setActiveRecordingUrl(fullUrl);
       setIsPlaying(true);
     }
+  };
+
+  const groupRecordingsByPhone = (callList: any[]) => {
+    const groups: Record<string, {
+      phoneNumber: string;
+      contactName?: string;
+      employeeName?: string;
+      employeeId: number;
+      recordings: any[];
+    }> = {};
+
+    callList.forEach((call) => {
+      const key = call.phoneNumber || "Unknown";
+      if (!groups[key]) {
+        groups[key] = {
+          phoneNumber: key,
+          contactName: call.contactName,
+          employeeName: call.employeeName,
+          employeeId: call.employeeId,
+          recordings: [],
+        };
+      }
+      groups[key].recordings.push(call);
+    });
+
+    return Object.values(groups);
   };
 
   return (
@@ -83,7 +117,7 @@ export default function RecordingsPage() {
       </div>
 
       {/* Filter and search */}
-      <div className="p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex items-center gap-4">
+      <div className="p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -92,6 +126,21 @@ export default function RecordingsPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-brand-500" /> Date:
+          </span>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => {
+              setSelectedDate(e.target.value);
+              setPage(1);
+            }}
+            className="px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
       </div>
@@ -106,69 +155,102 @@ export default function RecordingsPage() {
       ) : calls.length === 0 ? (
         <div className="p-12 text-center bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center">
           <Disc className="w-12 h-12 text-gray-300 dark:text-gray-700 mb-2" />
-          <p className="text-gray-400 dark:text-gray-500 text-sm font-medium">No recorded conversations found</p>
+          <p className="text-gray-400 dark:text-gray-500 text-sm font-medium">No recorded conversations found for this day</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {calls.map((call) => {
-            const isCurrent = activeRecordingUrl?.includes(call.recordingUrl);
-            const isThisPlaying = isCurrent && isPlaying;
+          {groupRecordingsByPhone(calls).map((group) => {
             return (
               <div 
-                key={call.callId} 
-                className={`p-5 rounded-2xl bg-white dark:bg-gray-900 border transition-all duration-300 shadow-sm flex flex-col justify-between h-48 group ${
-                  isCurrent 
-                    ? "border-brand-500 ring-2 ring-brand-500/10" 
-                    : "border-gray-100 dark:border-gray-800 hover:border-brand-300 dark:hover:border-brand-800 hover:shadow-md"
-                }`}
+                key={group.phoneNumber}
+                className="p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between hover:border-brand-300 dark:hover:border-brand-800 hover:shadow-md transition-all duration-300"
               >
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 rounded-lg text-xs font-semibold">
-                      <PhoneCall className="w-3 h-3" />
-                      {call.callType || "Call"}
-                    </span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {formatDuration(call.duration)}
+                    <div className="flex items-center gap-2">
+                      <div className="w-10 h-10 rounded-full bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-sm">
+                        {group.contactName ? group.contactName.charAt(0).toUpperCase() : "#"}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base tracking-tight truncate max-w-[130px]">
+                          {group.phoneNumber}
+                        </h3>
+                        {group.contactName && (
+                          <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium truncate max-w-[130px]">{group.contactName}</p>
+                        )}
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full text-[10px] font-bold">
+                      {group.recordings.length} {group.recordings.length === 1 ? "call" : "calls"}
                     </span>
                   </div>
-
-                  <h3 className="font-bold text-gray-900 dark:text-white text-base tracking-tight truncate">
-                    {call.phoneNumber}
-                  </h3>
-                  <p className="text-xs text-gray-400 mt-1 font-medium">
-                    Agent: <span className="text-gray-700 dark:text-gray-300 font-semibold">{call.employeeName || `Employee #${call.employeeId}`}</span>
+                  <p className="text-xs text-gray-400 font-medium mt-3">
+                    Agent: <span className="text-gray-700 dark:text-gray-300 font-semibold">{group.employeeName || `Employee #${group.employeeId}`}</span>
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-gray-50 dark:border-gray-800/80 pt-4 mt-2">
-                  <div className="flex items-center gap-1 text-gray-400 text-[11px] font-medium">
-                    <Calendar className="w-3 h-3" />
-                    {formatDate(call.callDateTime)}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <a
-                      href={call.recordingUrl.startsWith("http") ? call.recordingUrl : `${baseUrl}${call.recordingUrl}`}
-                      download
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700/80 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white rounded-xl transition"
-                      title="Download MP3"
-                    >
-                      <ArrowDownToLine className="w-4 h-4" />
-                    </a>
-                    <button
-                      onClick={() => handlePlayToggle(call.recordingUrl)}
-                      className={`p-3 rounded-xl transition shadow-lg ${
-                        isThisPlaying
-                          ? "bg-indigo-600 text-white shadow-indigo-600/20"
-                          : "bg-brand-500 hover:bg-brand-600 text-white shadow-brand-500/20"
-                      }`}
-                    >
-                      {isThisPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
-                    </button>
-                  </div>
+                <div className="border-t border-gray-50 dark:border-gray-800/80 pt-3 mt-4 space-y-2">
+                  {group.recordings.map((rec) => {
+                    const isCurrent = activeRecordingUrl?.includes(rec.recordingUrl);
+                    const isThisPlaying = isCurrent && isPlaying;
+                    const cType = rec.callType || "Incoming";
+                    
+                    const formatCallTime = (dateStr: string) => {
+                      if (!dateStr) return "";
+                      const d = new Date(dateStr);
+                      if (isNaN(d.getTime())) return dateStr;
+                      return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+                    };
+
+                    return (
+                      <div 
+                        key={rec.callId}
+                        className={`p-2 rounded-xl border flex items-center justify-between gap-3 transition ${
+                          isCurrent 
+                            ? "bg-brand-50/30 dark:bg-brand-950/10 border-brand-500/30" 
+                            : "bg-gray-50/50 dark:bg-gray-800/30 border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span className="p-1 rounded-lg">
+                            {cType === "Incoming" ? <PhoneIncoming className="w-3.5 h-3.5 text-emerald-500" /> :
+                             cType === "Outgoing" ? <PhoneOutgoing className="w-3.5 h-3.5 text-blue-500" /> :
+                             <PhoneMissed className="w-3.5 h-3.5 text-red-500" />}
+                          </span>
+                          <div className="text-[11px]">
+                            <div className="font-semibold text-gray-700 dark:text-gray-300">{formatCallTime(rec.callDateTime)}</div>
+                            <div className="text-[9px] text-gray-400 flex items-center gap-1 mt-0.5">
+                              <Clock className="w-2.5 h-2.5" />
+                              {formatDuration(rec.duration)}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <a
+                            href={rec.recordingUrl.startsWith("http") ? rec.recordingUrl : `${baseUrl}${rec.recordingUrl}`}
+                            download
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-1 bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-700 dark:hover:text-white rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 transition"
+                            title="Download Recording"
+                          >
+                            <ArrowDownToLine className="w-3.5 h-3.5" />
+                          </a>
+                          <button
+                            onClick={() => handlePlayToggle(rec.recordingUrl)}
+                            className={`p-1 rounded-lg transition shadow-sm border ${
+                              isThisPlaying
+                                ? "bg-indigo-600 border-indigo-600 text-white shadow-indigo-600/20"
+                                : "bg-brand-500 border-brand-500 hover:bg-brand-600 text-white shadow-brand-500/20"
+                            }`}
+                          >
+                            {isThisPlaying ? <Pause className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -192,7 +274,7 @@ export default function RecordingsPage() {
             </button>
             <button
               onClick={() => setPage((p) => p + 1)}
-              disabled={calls.length < 10}
+              disabled={calls.length < 100}
               className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
             >
               Next
