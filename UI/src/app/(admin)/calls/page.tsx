@@ -9,6 +9,25 @@ export default function CallsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
+  const formatDuration = (secs: number) => {
+    if (!secs) return "00:00";
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = (secs % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const y = d.getFullYear();
+    const m = (d.getMonth() + 1).toString().padStart(2, "0");
+    const day = d.getDate().toString().padStart(2, "0");
+    const hr = d.getHours().toString().padStart(2, "0");
+    const min = d.getMinutes().toString().padStart(2, "0");
+    return `${y}-${m}-${day} ${hr}:${min}`;
+  };
+
   const fetchCalls = async () => {
     setLoading(true);
     try {
@@ -16,14 +35,11 @@ export default function CallsPage() {
       if (res?.success && res.data) {
         setCalls(res.data.items || res.data);
       } else {
-        setCalls([
-          { callId: 1, phoneNumber: "+1 (555) 234-5678", agentName: "Alex Vance", type: "Incoming", duration: "04:15", timestamp: "2026-08-02 14:22", status: "Answered" },
-          { callId: 2, phoneNumber: "+1 (555) 876-5432", agentName: "Sarah Connor", type: "Outgoing", duration: "01:45", timestamp: "2026-08-02 13:05", status: "Completed" },
-          { callId: 3, phoneNumber: "+1 (555) 345-6789", agentName: "John Matrix", type: "Missed", duration: "00:00", timestamp: "2026-08-02 11:40", status: "Missed" },
-        ]);
+        setCalls([]);
       }
     } catch (err) {
       console.error("Failed to fetch call telemetry", err);
+      setCalls([]);
     } finally {
       setLoading(false);
     }
@@ -71,33 +87,70 @@ export default function CallsPage() {
                 <tr>
                   <td colSpan={6} className="px-6 py-8 text-center text-gray-400">Loading call logs...</td>
                 </tr>
-              ) : calls.map((call) => (
-                <tr key={call.callId} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
-                  <td className="px-6 py-4">
-                    <span className="flex items-center gap-1.5 font-medium text-xs">
-                      {call.type === "Incoming" ? <PhoneIncoming className="w-4 h-4 text-emerald-500" /> :
-                       call.type === "Outgoing" ? <PhoneOutgoing className="w-4 h-4 text-blue-500" /> :
-                       <PhoneMissed className="w-4 h-4 text-red-500" />}
-                      {call.type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{call.phoneNumber}</td>
-                  <td className="px-6 py-4">{call.agentName}</td>
-                  <td className="px-6 py-4 flex items-center gap-1"><Clock className="w-3.5 h-3.5 text-gray-400" /> {call.duration}</td>
-                  <td className="px-6 py-4 text-gray-400 text-xs">{call.timestamp}</td>
-                  <td className="px-6 py-4 text-right">
-                    {call.duration !== "00:00" ? (
-                      <button className="p-2 text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/50 rounded-full hover:bg-brand-100 transition">
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                      </button>
-                    ) : (
-                      <span className="text-xs text-gray-400">N/A</span>
-                    )}
-                  </td>
+              ) : calls.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-400">No call logs found</td>
                 </tr>
-              ))}
+              ) : calls.map((call) => {
+                const cType = call.callType || "Incoming";
+                return (
+                  <tr key={call.callId} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
+                    <td className="px-6 py-4">
+                      <span className="flex items-center gap-1.5 font-medium text-xs">
+                        {cType === "Incoming" ? <PhoneIncoming className="w-4 h-4 text-emerald-500" /> :
+                         cType === "Outgoing" ? <PhoneOutgoing className="w-4 h-4 text-blue-500" /> :
+                         <PhoneMissed className="w-4 h-4 text-red-500" />}
+                        {cType}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{call.phoneNumber}</td>
+                    <td className="px-6 py-4">{call.employeeName || `Employee #${call.employeeId}`}</td>
+                    <td className="px-6 py-4 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-gray-400" /> {formatDuration(call.duration)}
+                    </td>
+                    <td className="px-6 py-4 text-gray-400 text-xs">{formatDate(call.callDateTime)}</td>
+                    <td className="px-6 py-4 text-right">
+                      {call.hasRecording && call.recordingUrl ? (
+                        <a
+                          href={call.recordingUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-block p-2 text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/50 rounded-full hover:bg-brand-100 transition"
+                        >
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                        </a>
+                      ) : (
+                        <span className="text-xs text-gray-400">N/A</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination UI */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 dark:border-gray-800">
+          <div className="text-xs text-gray-500">
+            Showing Page <span className="font-semibold text-gray-700 dark:text-gray-300">{page}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(p - 1, 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={calls.length < 10}
+              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>

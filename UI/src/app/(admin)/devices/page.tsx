@@ -70,8 +70,10 @@ export default function DevicesPage() {
                   <Smartphone className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{dev.modelName}</h3>
-                  <span className="text-xs text-gray-400">{dev.osVersion}</span>
+                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                    {dev.manufacturer ? `${dev.manufacturer} ${dev.model || ""}` : (dev.model || dev.modelName || "Registered Device")}
+                  </h3>
+                  <span className="text-xs text-gray-400">OS Version: {dev.osVersion || "N/A"}</span>
                 </div>
               </div>
               <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
@@ -84,8 +86,14 @@ export default function DevicesPage() {
             </div>
 
             <div className="text-xs space-y-1 text-gray-500 dark:text-gray-400">
-              <div><span className="font-medium text-gray-700 dark:text-gray-300">Agent:</span> {dev.employeeName}</div>
-              <div><span className="font-medium text-gray-700 dark:text-gray-300">IMEI:</span> {dev.imeiNumber}</div>
+              <div>
+                <span className="font-medium text-gray-700 dark:text-gray-300">Agent:</span>{" "}
+                {dev.employeeName || `Employee #${dev.employeeId}`}
+              </div>
+              <div>
+                <span className="font-medium text-gray-700 dark:text-gray-300">IMEI:</span>{" "}
+                {dev.imei || dev.imeiNumber || "N/A"}
+              </div>
             </div>
 
             <div className="pt-2 border-t border-gray-100 dark:border-gray-800 flex items-center gap-2">
