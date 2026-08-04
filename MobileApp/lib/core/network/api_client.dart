@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../constants/api_constants.dart';
@@ -15,6 +17,12 @@ class ApiClient {
       receiveTimeout: const Duration(seconds: 15),
       headers: {'Content-Type': 'application/json'},
     ));
+
+    (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+      final client = HttpClient();
+      client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+      return client;
+    };
 
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
@@ -46,7 +54,13 @@ class ApiClient {
       final refreshToken = await _storage.read(key: 'refreshToken');
       if (refreshToken == null) return false;
 
-      final response = await Dio().post(
+      final refreshDio = Dio();
+      (refreshDio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+        final client = HttpClient();
+        client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+        return client;
+      };
+      final response = await refreshDio.post(
         '${ApiConstants.baseUrl}${ApiConstants.refreshToken}',
         data: {'refreshToken': refreshToken},
       );
