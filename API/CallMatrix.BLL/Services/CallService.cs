@@ -213,5 +213,67 @@ namespace CallMatrix.BLL.Services
 
             return ApiResponse<CallAnalyticsSummaryResponse>.Ok(summary, "Call analytics summary generated successfully");
         }
+
+        public async Task<ApiResponse<DashboardSummaryResponse>> GetDashboardSummaryAsync(int companyId)
+        {
+            // 1. Get calls for the company
+            var calls = await _unitOfWork.Calls.GetCallsByCompanyIdAsync(companyId);
+            var callList = calls.ToList();
+            int totalCalls = callList.Count;
+
+            // 2. Get leads for the company
+            var leads = await _unitOfWork.Leads.GetAllAsync();
+            var leadList = leads.Where(l => l.CompanyId == companyId).ToList();
+            int totalLeads = leadList.Count;
+
+            // 3. Get active devices count
+            var devices = await _unitOfWork.Devices.GetAllAsync();
+            var deviceList = devices.Where(d => d.CompanyId == companyId && d.IsActive).ToList();
+            int totalDevices = deviceList.Count;
+
+            // 4. Calculate average duration
+            long totalDuration = callList.Sum(c => (long)(c.Duration ?? 0));
+            double avgDuration = totalCalls > 0 ? (double)totalDuration / totalCalls : 0;
+
+            // 5. Outcomes
+            int incoming = callList.Count(c => c.CallType.Equals("Incoming", StringComparison.OrdinalIgnoreCase));
+            int outgoing = callList.Count(c => c.CallType.Equals("Outgoing", StringComparison.OrdinalIgnoreCase));
+            int missed = callList.Count(c => c.CallType.Equals("Missed", StringComparison.OrdinalIgnoreCase));
+            int answered = incoming + outgoing;
+
+            // 6. Weekly series (last 7 days)
+            var last7Days = Enumerable.Range(0, 7)
+                .Select(i => DateTime.Today.AddDays(-6 + i))
+                .ToList();
+
+            var weeklyCallVolume = last7Days
+                .Select(d => callList.Count(c => c.CallDateTime.Date == d.Date))
+                .ToList();
+
+            var weeklyLeadConversions = last7Days
+                .Select(d => leadList.Count(l => l.CreatedAt.Date == d.Date))
+                .ToList();
+
+            var weeklyLabels = last7Days.Select(d => d.ToString("ddd")).ToList();
+
+            var summary = new DashboardSummaryResponse
+            {
+                TotalCalls = totalCalls,
+                TotalLeads = totalLeads,
+                TotalDevices = totalDevices,
+                AverageDurationSeconds = Math.Round(avgDuration, 2),
+                
+                AnsweredCalls = answered,
+                MissedCalls = missed,
+                RejectedCalls = 0,
+                BusyCalls = 0,
+
+                WeeklyCallVolume = weeklyCallVolume,
+                WeeklyLeadConversions = weeklyLeadConversions,
+                WeeklyLabels = weeklyLabels
+            };
+
+            return ApiResponse<DashboardSummaryResponse>.Ok(summary, "Dashboard summary calculated successfully");
+        }
     }
 }

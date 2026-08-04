@@ -44,4 +44,21 @@ namespace CallMatrix.DTO.Response.Calls
         public double AverageDurationSeconds { get; set; }
         public int TotalRecordings { get; set; }
     }
+
+    public class DashboardSummaryResponse
+    {
+        public int TotalCalls { get; set; }
+        public int TotalLeads { get; set; }
+        public int TotalDevices { get; set; }
+        public double AverageDurationSeconds { get; set; }
+        
+        public int AnsweredCalls { get; set; }
+        public int MissedCalls { get; set; }
+        public int RejectedCalls { get; set; }
+        public int BusyCalls { get; set; }
+
+        public List<int> WeeklyCallVolume { get; set; } = new();
+        public List<int> WeeklyLeadConversions { get; set; } = new();
+        public List<string> WeeklyLabels { get; set; } = new();
+    }
 }

@@ -55,6 +55,7 @@ namespace CallMatrix.BLL.Interfaces
         Task<ApiResponse<bool>> SyncCallsAsync(SyncCallsRequest request, int employeeId);
         Task<ApiResponse<CallRecordingResponse>> SaveCallRecordingAsync(UploadCallRecordingRequest request, System.IO.Stream? fileStream, string? fileExtension, int employeeId);
         Task<ApiResponse<CallAnalyticsSummaryResponse>> GetAnalyticsSummaryAsync(int companyId, DateTime? startDate, DateTime? endDate);
+        Task<ApiResponse<DashboardSummaryResponse>> GetDashboardSummaryAsync(int companyId);
     }
 
     public interface IDeviceService

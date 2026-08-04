@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { callService, leadService, deviceService } from "@/lib/services";
+import { callService } from "@/lib/services";
 import { Phone, Users, ShieldAlert, ArrowUpRight, Clock, Activity } from "lucide-react";
 import { ApexOptions } from "apexcharts";
 
@@ -9,33 +9,21 @@ import { ApexOptions } from "apexcharts";
 const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 export default function DashboardPage() {
-  const [analytics, setAnalytics] = useState<any>(null);
-  const [leadCount, setLeadCount] = useState<number>(0);
-  const [deviceCount, setDeviceCount] = useState<number>(0);
+  const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const loadDashboardData = async () => {
       try {
-        const [analyticsRes, leadsRes, devicesRes] = await Promise.all([
-          callService.getAnalytics().catch(() => null),
-          leadService.getLeads(1, 1).catch(() => null),
-          deviceService.getDevices(1, 1).catch(() => null),
-        ]);
-
-        if (analyticsRes?.success) {
-          setAnalytics(analyticsRes.data);
+        const res = await callService.getDashboardSummary().catch(() => null);
+        if (res?.success) {
+          setDashboardData(res.data);
         } else {
-          setAnalytics(null);
+          setDashboardData(null);
         }
-        
-        setLeadCount(leadsRes?.success ? (leadsRes.data.totalCount || 0) : 0);
-        setDeviceCount(devicesRes?.success ? (devicesRes.data.totalCount || 0) : 0);
       } catch (err) {
         console.error("Failed to load dashboard metrics", err);
-        setAnalytics(null);
-        setLeadCount(0);
-        setDeviceCount(0);
+        setDashboardData(null);
       } finally {
         setLoading(false);
       }
@@ -62,7 +50,9 @@ export default function DashboardPage() {
       },
     },
     xaxis: {
-      categories: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      categories: dashboardData?.weeklyLabels && dashboardData.weeklyLabels.length > 0 
+        ? dashboardData.weeklyLabels 
+        : ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
       labels: { style: { colors: "#9CA3AF" } },
     },
     yaxis: {
@@ -73,8 +63,18 @@ export default function DashboardPage() {
   };
 
   const lineChartSeries = [
-    { name: "Total Calls", data: [42, 68, 55, 78, 92, 45, 60] },
-    { name: "Leads Converted", data: [12, 19, 15, 25, 32, 10, 18] },
+    { 
+      name: "Total Calls", 
+      data: dashboardData?.weeklyCallVolume && dashboardData.weeklyCallVolume.length > 0 
+        ? dashboardData.weeklyCallVolume 
+        : [0, 0, 0, 0, 0, 0, 0] 
+    },
+    { 
+      name: "Leads Converted", 
+      data: dashboardData?.weeklyLeadConversions && dashboardData.weeklyLeadConversions.length > 0 
+        ? dashboardData.weeklyLeadConversions 
+        : [0, 0, 0, 0, 0, 0, 0] 
+    },
   ];
 
   const donutChartOptions: ApexOptions = {
@@ -85,7 +85,12 @@ export default function DashboardPage() {
     dataLabels: { enabled: false },
   };
 
-  const donutChartSeries = [120, 15, 8, 12];
+  const answered = dashboardData?.answeredCalls ?? 0;
+  const missed = dashboardData?.missedCalls ?? 0;
+  const rejected = dashboardData?.rejectedCalls ?? 0;
+  const busy = dashboardData?.busyCalls ?? 0;
+
+  const donutChartSeries = [answered, missed, rejected, busy];
 
   return (
     <div className="space-y-6">
@@ -109,10 +114,10 @@ export default function DashboardPage() {
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Total Calls</span>
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-              {loading ? "..." : analytics?.totalCalls || 450}
+              {loading ? "..." : (dashboardData?.totalCalls ?? 0)}
             </h3>
             <span className="text-xs font-medium text-emerald-500 flex items-center mt-1">
-              <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> +12.4% vs last week
+              <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> Dynamic Tracking
             </span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-brand-50 dark:bg-brand-950/50 flex items-center justify-center text-brand-600 dark:text-brand-400">
@@ -124,7 +129,7 @@ export default function DashboardPage() {
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">CRM Leads</span>
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-              {loading ? "..." : leadCount}
+              {loading ? "..." : (dashboardData?.totalLeads ?? 0)}
             </h3>
             <span className="text-xs font-medium text-emerald-500 flex items-center mt-1">
               <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" /> Active Pipeline
@@ -139,7 +144,7 @@ export default function DashboardPage() {
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Active Devices</span>
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-              {loading ? "..." : deviceCount}
+              {loading ? "..." : (dashboardData?.totalDevices ?? 0)}
             </h3>
             <span className="text-xs font-medium text-blue-500 flex items-center mt-1">
               <Activity className="w-3.5 h-3.5 mr-0.5" /> Registered Mobile Units
@@ -154,10 +159,10 @@ export default function DashboardPage() {
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Avg Call Duration</span>
             <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-              {loading ? "..." : `${analytics?.averageDurationSeconds || 142}s`}
+              {loading ? "..." : `${dashboardData?.averageDurationSeconds ?? 0}s`}
             </h3>
             <span className="text-xs font-medium text-purple-500 flex items-center mt-1">
-              <Clock className="w-3.5 h-3.5 mr-0.5" /> High Engagement
+              <Clock className="w-3.5 h-3.5 mr-0.5" /> Call Engagement
             </span>
           </div>
           <div className="w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-950/50 flex items-center justify-center text-purple-600 dark:text-purple-400">
@@ -186,7 +191,14 @@ export default function DashboardPage() {
             <p className="text-xs text-gray-400 mb-4">Distribution of agent call outcomes</p>
           </div>
           <div className="h-64 flex items-center justify-center">
-            <ReactApexChart options={donutChartOptions} series={donutChartSeries} type="donut" height="100%" />
+            {answered + missed + rejected + busy > 0 ? (
+              <ReactApexChart options={donutChartOptions} series={donutChartSeries} type="donut" height="100%" />
+            ) : (
+              <div className="text-center text-gray-400 dark:text-gray-500 text-sm flex flex-col items-center justify-center">
+                <Activity className="w-12 h-12 mb-2 text-gray-300 dark:text-gray-700 animate-pulse" />
+                No call telemetry logged
+              </div>
+            )}
           </div>
         </div>
       </div>

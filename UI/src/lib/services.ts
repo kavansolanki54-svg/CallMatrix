@@ -182,6 +182,10 @@ export const callService = {
     const res = await apiClient.get(url);
     return res.data;
   },
+  getDashboardSummary: async () => {
+    const res = await apiClient.get('/calls/dashboard');
+    return res.data;
+  },
 };
 
 export const deviceService = {

@@ -75,5 +75,14 @@ namespace CallMatrix.Controllers
             var result = await _callService.GetAnalyticsSummaryAsync(companyId, startDate, endDate);
             return StatusCode(result.StatusCode, result);
         }
+
+        [HttpGet("dashboard")]
+        [RequirePermission("Call Analytics", "CanView")]
+        public async Task<IActionResult> GetDashboardSummary()
+        {
+            int companyId = int.Parse(User.FindFirst("CompanyId")!.Value);
+            var result = await _callService.GetDashboardSummaryAsync(companyId);
+            return StatusCode(result.StatusCode, result);
+        }
     }
 }
