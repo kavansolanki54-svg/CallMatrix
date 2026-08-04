@@ -88,7 +88,7 @@ namespace CallMatrix.BLL.Services
 
             if (!isPasswordCorrect)
             {
-                return ApiResponse<LoginResponse>.Fail("Incorrect password", 401);
+                return ApiResponse<LoginResponse>.Fail("username and password is invalid", 401);
             }
 
             var role = user.RoleId.HasValue ? await _unitOfWork.Roles.GetByIdAsync(user.RoleId.Value) : null;
