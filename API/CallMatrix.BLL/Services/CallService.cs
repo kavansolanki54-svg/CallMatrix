@@ -5,6 +5,7 @@ using CallMatrix.DAL.UnitOfWork;
 using CallMatrix.DTO.Common;
 using CallMatrix.DTO.Request.Calls;
 using CallMatrix.DTO.Response.Calls;
+using Microsoft.EntityFrameworkCore;
 
 namespace CallMatrix.BLL.Services
 {
@@ -59,8 +60,23 @@ namespace CallMatrix.BLL.Services
             await _unitOfWork.BeginTransactionAsync();
             try
             {
+                int addedCount = 0;
                 foreach (var callDto in request.Calls)
                 {
+                    // Check if identical call log already exists in the database
+                    var exists = await _unitOfWork.Calls.Query().AnyAsync(c =>
+                        c.EmployeeId == employeeId &&
+                        c.PhoneNumber == callDto.PhoneNumber &&
+                        c.CallType == callDto.CallType &&
+                        c.Duration == callDto.Duration &&
+                        c.CallDateTime == callDto.CallDateTime
+                    );
+
+                    if (exists)
+                    {
+                        continue; // Skip duplicates
+                    }
+
                     var entity = _mapper.Map<CallMaster>(callDto);
                     entity.CompanyId = request.CompanyId;
                     entity.DeviceId = request.DeviceId;
@@ -71,12 +87,16 @@ namespace CallMatrix.BLL.Services
                     entity.IsActive = true;
 
                     await _unitOfWork.Calls.AddAsync(entity);
+                    addedCount++;
                 }
 
-                await _unitOfWork.SaveChangesAsync();
+                if (addedCount > 0)
+                {
+                    await _unitOfWork.SaveChangesAsync();
+                }
                 await _unitOfWork.CommitTransactionAsync();
 
-                return ApiResponse<bool>.Ok(true, $"{request.Calls.Count} call logs synchronized successfully");
+                return ApiResponse<bool>.Ok(true, $"{addedCount} call logs synchronized successfully");
             }
             catch
             {

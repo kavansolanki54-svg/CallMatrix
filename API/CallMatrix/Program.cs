@@ -40,7 +40,20 @@ app.UseCors("AllowAll");
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseStaticFiles();
+
+var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+provider.Mappings[".3gp"] = "audio/3gpp";
+provider.Mappings[".3gpp"] = "audio/3gpp";
+provider.Mappings[".amr"] = "audio/amr";
+provider.Mappings[".m4a"] = "audio/x-m4a";
+provider.Mappings[".mp3"] = "audio/mpeg";
+provider.Mappings[".wav"] = "audio/wav";
+provider.Mappings[".ogg"] = "audio/ogg";
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    ContentTypeProvider = provider
+});
 
 app.MapControllers();
 

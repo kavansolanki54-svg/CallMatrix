@@ -28,8 +28,19 @@ class MainActivity: FlutterActivity() {
                         is Number -> lastSyncVal.toLong()
                         else -> 0L
                     }
-                    val logs = fetchCallLogs(lastSync, customPath)
-                    result.success(logs)
+                    // Run disk and DB operations on background thread to prevent UI freezing/crashing
+                    Thread {
+                        try {
+                            val logs = fetchCallLogs(lastSync, customPath)
+                            runOnUiThread {
+                                result.success(logs)
+                            }
+                        } catch (e: Exception) {
+                            runOnUiThread {
+                                result.error("NATIVE_ERROR", e.message, null)
+                            }
+                        }
+                    }.start()
                 }
                 "findRecording" -> {
                     val phoneNumber = call.argument<String>("phoneNumber") ?: ""
@@ -38,8 +49,18 @@ class MainActivity: FlutterActivity() {
                         is Number -> startTimeVal.toLong()
                         else -> 0L
                     }
-                    val recordingPath = findCallRecording(phoneNumber, startTimeMs)
-                    result.success(recordingPath)
+                    Thread {
+                        try {
+                            val recordingPath = findCallRecording(phoneNumber, startTimeMs)
+                            runOnUiThread {
+                                result.success(recordingPath)
+                            }
+                        } catch (e: Exception) {
+                            runOnUiThread {
+                                result.error("NATIVE_ERROR", e.message, null)
+                            }
+                        }
+                    }.start()
                 }
                 "getDeviceDetails" -> {
                     val details = getDeviceDetails()
@@ -100,6 +121,9 @@ class MainActivity: FlutterActivity() {
                 sortOrder
             )
 
+            // Cache today's filesystem files once to prevent repeated directory scans
+            val todayFiles = cacheTodayFiles(customRecordingPath, todayStart)
+
             cursor?.use {
                 val numberIndex = it.getColumnIndex(CallLog.Calls.NUMBER)
                 val nameIndex = it.getColumnIndex(CallLog.Calls.CACHED_NAME)
@@ -126,7 +150,7 @@ class MainActivity: FlutterActivity() {
                         else -> "Unknown"
                     }
 
-                    val recordingPath = findCallRecording(number, date, customRecordingPath)
+                    val recordingPath = findCallRecordingOptimized(number, date, todayFiles)
 
                     val log = mapOf(
                         "phoneNumber" to number,
@@ -141,20 +165,54 @@ class MainActivity: FlutterActivity() {
                 }
             }
         } catch (e: Exception) {
-            // Guard against native SQLite query failures
+            // Guard against native failures
         }
         return callLogs
     }
 
-    private fun findCallRecording(phoneNumber: String, startTimeMs: Long, customPath: String = ""): String? {
+    private fun cacheTodayFiles(customPath: String, todayStart: Long): List<File> {
+        val todayFiles = mutableListOf<File>()
         try {
-            val projection = arrayOf(
-                MediaStore.Audio.Media.DATA,
-                MediaStore.Audio.Media.DATE_ADDED,
-                MediaStore.Audio.Media.DISPLAY_NAME
-            )
+            val searchDirs = mutableListOf<File>()
+            if (customPath.isNotEmpty()) {
+                searchDirs.add(File(customPath))
+            }
+            searchDirs.addAll(listOf(
+                File("/storage/emulated/0/Call"),
+                File("/storage/emulated/0/Sounds/Call"),
+                File("/storage/emulated/0/Recordings/Call"),
+                File("/storage/emulated/0/Voice Recorder/Call"),
+                File("/storage/emulated/0/Record"),
+                File("/storage/emulated/0/Recorder"),
+                File("/storage/emulated/0/MIUI/sound_recorder/call_rec"),
+                File("/storage/emulated/0/Music/Recordings/Call Recordings"),
+                File("/storage/emulated/0/CallRecordings"),
+                File("/storage/emulated/0/Music/Recordings"),
+                File("/storage/emulated/0/Recordings"),
+                File("/storage/emulated/0/Android/data/com.google.android.dialer/files/call_recordings")
+            ))
+
+            for (dir in searchDirs) {
+                if (dir.exists() && dir.isDirectory) {
+                    val files = dir.listFiles()
+                    if (files != null) {
+                        for (file in files) {
+                            if (file.isFile && file.lastModified() >= todayStart) {
+                                todayFiles.add(file)
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {}
+        return todayFiles
+    }
+
+    private fun queryMediaStore(phoneNumber: String, startTimeMs: Long): String? {
+        try {
+            val projection = arrayOf(MediaStore.Audio.Media.DATA)
             val cleanPhone = phoneNumber.replace("[^0-9]".toRegex(), "")
-            val startWindowSec = (startTimeMs - 10000) / 1000
+            val startWindowSec = (startTimeMs - 15000) / 1000
             val endWindowSec = (startTimeMs + 45000) / 1000
 
             val selection = "${MediaStore.Audio.Media.DATE_ADDED} >= ? AND ${MediaStore.Audio.Media.DATE_ADDED} <= ?"
@@ -170,64 +228,55 @@ class MainActivity: FlutterActivity() {
 
             mediaCursor?.use {
                 val dataIndex = it.getColumnIndex(MediaStore.Audio.Media.DATA)
-                val nameIndex = it.getColumnIndex(MediaStore.Audio.Media.DISPLAY_NAME)
                 while (it.moveToNext()) {
                     val filePath = if (dataIndex >= 0) it.getString(dataIndex) else null
-                    val displayName = if (nameIndex >= 0) it.getString(nameIndex) ?: "" else ""
                     if (!filePath.isNullOrEmpty()) {
-                        val lowerName = displayName.lowercase()
-                        if (cleanPhone.isEmpty() || lowerName.contains(cleanPhone) || lowerName.contains("call") || lowerName.contains("rec")) {
+                        val fileName = File(filePath).name.lowercase()
+                        if (cleanPhone.isEmpty() || fileName.contains(cleanPhone) || fileName.contains("call") || fileName.contains("rec")) {
                             return filePath
                         }
                     }
                 }
             }
+        } catch (e: Exception) {}
+        return null
+    }
 
-            val searchDirs = mutableListOf<File>()
-            if (customPath.isNotEmpty()) {
-                searchDirs.add(File(customPath))
-            }
-            searchDirs.addAll(listOf(
-                File("/storage/emulated/0/Call"),
-                File("/storage/emulated/0/Sounds/Call"),
-                File("/storage/emulated/0/Recordings/Call"),
-                File("/storage/emulated/0/Voice Recorder/Call"),
-                File("/storage/emulated/0/Record/Call"),
-                File("/storage/emulated/0/Recorder/Call"),
-                File("/storage/emulated/0/MIUI/sound_recorder/call_rec"),
-                File("/storage/emulated/0/Music/Recordings/Call Recordings"),
-                File("/storage/emulated/0/CallRecordings"),
-                File("/storage/emulated/0/Music/Recordings"),
-                File("/storage/emulated/0/Recordings"),
-                File("/storage/emulated/0/Android/data/com.google.android.dialer/files/call_recordings")
-            ))
+    private fun findCallRecordingOptimized(phoneNumber: String, startTimeMs: Long, todayFiles: List<File>): String? {
+        // 1. Try MediaStore first
+        val mediaPath = queryMediaStore(phoneNumber, startTimeMs)
+        if (mediaPath != null) return mediaPath
 
-            val startWindow = startTimeMs - 10000
+        // 2. Fallback to cached filesystem list search
+        try {
+            val cleanPhone = phoneNumber.replace("[^0-9]".toRegex(), "")
+            val startWindow = startTimeMs - 15000
             val endWindow = startTimeMs + 45000
 
-            for (dir in searchDirs) {
-                if (dir.exists() && dir.isDirectory) {
-                    val files = dir.listFiles()
-                    if (files != null) {
-                        for (file in files) {
-                            if (file.isFile) {
-                                val lastModified = file.lastModified()
-                                val name = file.name.lowercase()
-                                val isPhoneMatch = cleanPhone.isNotEmpty() && name.contains(cleanPhone)
-                                val isTimeMatch = lastModified in startWindow..endWindow
+            for (file in todayFiles) {
+                val lastModified = file.lastModified()
+                val name = file.name.lowercase()
+                val isPhoneMatch = cleanPhone.isNotEmpty() && name.contains(cleanPhone)
+                val isTimeMatch = lastModified in startWindow..endWindow
 
-                                if (isTimeMatch || (isPhoneMatch && isTimeMatch)) {
-                                    return file.absolutePath
-                                }
-                            }
-                        }
-                    }
+                if (isTimeMatch || (isPhoneMatch && isTimeMatch)) {
+                    return file.absolutePath
                 }
             }
-        } catch (e: Exception) {
-            // Guard against storage navigation failure
-        }
+        } catch (e: Exception) {}
         return null
+    }
+
+    private fun findCallRecording(phoneNumber: String, startTimeMs: Long): String? {
+        // Fallback full search (used in individual method channel queries)
+        val todayStart = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }.timeInMillis
+        val cached = cacheTodayFiles("", todayStart)
+        return findCallRecordingOptimized(phoneNumber, startTimeMs, cached)
     }
 
     private fun getDeviceDetails(): Map<String, String> {
