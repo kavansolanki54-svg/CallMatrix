@@ -130,15 +130,16 @@ namespace CallMatrix.BLL.Services
                 // Build relative directory structure: recordings/Company_X/Employee_Y/Year/Month/Day
                 var relativeDir = System.IO.Path.Combine("recordings", $"Company_{call.CompanyId}", $"Employee_{employeeId}", year, month, day);
                 
-                var currentDir = System.IO.Directory.GetCurrentDirectory();
+                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
                 string uploadsFolder;
-                if (currentDir.EndsWith("wwwroot", StringComparison.OrdinalIgnoreCase))
+                if (baseDir.Contains("bin") && (baseDir.Contains("Debug") || baseDir.Contains("Release")))
                 {
-                    uploadsFolder = System.IO.Path.Combine(currentDir, relativeDir);
+                    var projectRoot = System.IO.Directory.GetParent(baseDir)?.Parent?.Parent?.FullName ?? baseDir;
+                    uploadsFolder = System.IO.Path.Combine(projectRoot, "wwwroot", relativeDir);
                 }
                 else
                 {
-                    uploadsFolder = System.IO.Path.Combine(currentDir, "wwwroot", relativeDir);
+                    uploadsFolder = System.IO.Path.Combine(baseDir, "wwwroot", relativeDir);
                 }
 
                 if (!System.IO.Directory.Exists(uploadsFolder))
