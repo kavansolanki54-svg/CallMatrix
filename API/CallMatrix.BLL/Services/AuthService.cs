@@ -117,6 +117,7 @@ namespace CallMatrix.BLL.Services
                 Status = "Success",
                 Ipaddress = ipAddress, 
                 UserAgent = userAgent, 
+                DeviceInfo = request.DeviceInfo,
                 CreatedBy = user.EmployeeId,
                 CreatedAt = DateTime.Now,
                 IsActive = true

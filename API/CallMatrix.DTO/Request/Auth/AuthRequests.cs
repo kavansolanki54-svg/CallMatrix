@@ -4,6 +4,8 @@ namespace CallMatrix.DTO.Request.Auth
     {
         public string Email { get; set; } = string.Empty;
         public string Password { get; set; } = string.Empty;
+        public string? DeviceInfo { get; set; }
+        public string? UserAgent { get; set; }
     }
 
     public class RefreshTokenRequest

@@ -23,7 +23,9 @@ namespace CallMatrix.Controllers
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
-            var userAgent = Request.Headers["User-Agent"].ToString() ?? "Unknown";
+            var userAgent = string.IsNullOrEmpty(request.UserAgent)
+                ? (Request.Headers["User-Agent"].ToString() ?? "Unknown")
+                : request.UserAgent;
 
             var result = await _authService.LoginAsync(request, ipAddress, userAgent);
             return StatusCode(result.StatusCode, result);
