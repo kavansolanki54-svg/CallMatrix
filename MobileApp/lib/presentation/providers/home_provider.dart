@@ -80,7 +80,7 @@ class HomeNotifier extends StateNotifier<HomeStats> {
 
       List<CallLogItem> recentCalls = [];
       try {
-        final logsRes = await dio.get(ApiConstants.analyticsLogs, queryParameters: {'page': 1, 'pageSize': 10});
+        final logsRes = await dio.get(ApiConstants.callLogsList, queryParameters: {'page': 1, 'pageSize': 50});
         final success = logsRes.data['success'] ?? logsRes.data['isSuccess'] ?? false;
         if (success == true) {
           final data = logsRes.data['data'];
@@ -97,12 +97,28 @@ class HomeNotifier extends StateNotifier<HomeStats> {
 
       List<TopContact> topContacts = [];
       try {
-        final topRes = await dio.get(ApiConstants.topContacts, queryParameters: {'limit': 5});
-        final success = topRes.data['success'] ?? topRes.data['isSuccess'] ?? false;
-        if (success == true) {
-          final items = topRes.data['data'] as List? ?? [];
-          topContacts = items.map((e) => TopContact.fromJson(e as Map<String, dynamic>)).toList();
+        final Map<String, ({String name, int count, int duration})> contactCounts = {};
+        for (final c in recentCalls) {
+          final phone = c.phoneNumber;
+          final current = contactCounts[phone] ?? (name: c.contactName, count: 0, duration: 0);
+          contactCounts[phone] = (
+            name: current.name.isNotEmpty ? current.name : c.contactName,
+            count: current.count + 1,
+            duration: current.duration + c.duration,
+          );
         }
+
+        final sorted = contactCounts.entries.toList()
+          ..sort((a, b) => b.value.count.compareTo(a.value.count));
+
+        int rank = 1;
+        topContacts = sorted.take(5).map((e) => TopContact(
+          phoneNumber: e.key,
+          contactName: e.value.name,
+          totalCalls: e.value.count,
+          totalDuration: e.value.duration,
+          rank: rank++,
+        )).toList();
       } catch (_) {}
 
       state = HomeStats(

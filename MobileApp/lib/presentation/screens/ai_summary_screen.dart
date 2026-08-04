@@ -239,14 +239,14 @@ class _AiSummaryScreenState extends State<AiSummaryScreen> {
                       // Key Discussion Points
                       _buildSectionHeader('Key Discussion Points'),
                       const SizedBox(height: 10),
-                      ..._aiSummary!.keyPoints.map((pt) => _buildBulletPoint(pt)).animate(delay: 200.ms).fadeIn(),
+                      ..._aiSummary!.keyPoints.map((pt) => _buildBulletPoint(pt).animate().fadeIn()),
 
                       const SizedBox(height: 20),
 
                       // Action Items
                       _buildSectionHeader('Action Items'),
                       const SizedBox(height: 10),
-                      ..._aiSummary!.actionItems.map((item) => _buildBulletPoint(item, isAction: true)).animate(delay: 300.ms).fadeIn(),
+                      ..._aiSummary!.actionItems.map((item) => _buildBulletPoint(item, isAction: true).animate().fadeIn()),
 
                       const SizedBox(height: 20),
 

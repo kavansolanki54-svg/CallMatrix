@@ -92,7 +92,7 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
       List<CallLogItem> allItems = [];
 
       try {
-        final res = await dio.get(ApiConstants.analyticsLogs, queryParameters: {
+        final res = await dio.get(ApiConstants.callLogsList, queryParameters: {
           'page': page,
           'pageSize': 100,
           if (search != null && search.isNotEmpty) 'search': search,

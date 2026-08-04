@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:path_provider/path_provider.dart';
 import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/main_container.dart';
@@ -86,7 +85,7 @@ class _CallMatrixAppState extends ConsumerState<CallMatrixApp> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      dialogTheme: const DialogTheme(
+      dialogTheme: const DialogThemeData(
         backgroundColor: Color(0xFF1D2939),
       ),
     );
