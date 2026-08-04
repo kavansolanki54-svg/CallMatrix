@@ -29,16 +29,16 @@ class CallLogItem {
 
   factory CallLogItem.fromJson(Map<String, dynamic> json) {
     return CallLogItem(
-      callLogId: json['callLogId'],
+      callLogId: json['callLogId'] ?? json['callId'],
       phoneNumber: json['phoneNumber'] ?? '',
       contactName: json['contactName'] ?? '',
       callType: json['callType'] ?? 'Unknown',
-      startTime: DateTime.tryParse(json['startTime'] ?? '') ?? DateTime.now(),
+      startTime: DateTime.tryParse(json['callDateTime'] ?? json['startTime'] ?? '') ?? DateTime.now(),
       endTime: json['endTime'] != null ? DateTime.tryParse(json['endTime']) : null,
-      duration: json['durationInSeconds'] ?? json['duration'] ?? 0,
+      duration: json['duration'] ?? 0,
       simId: json['simId'],
-      hasRecording: json['isRecordingAvailable'] ?? false,
-      recordingPath: json['recordingPath'],
+      hasRecording: json['hasRecording'] ?? json['isRecordingAvailable'] ?? false,
+      recordingPath: json['recordingUrl'] ?? json['recordingPath'],
     );
   }
 }

@@ -84,7 +84,8 @@ class _CallDetailScreenState extends ConsumerState<CallDetailScreen> {
           } else if (File(path).existsSync()) {
             source = DeviceFileSource(path);
           } else {
-            final url = '${ApiConstants.baseUrl}/$path';
+            final cleanPath = path.startsWith('/') ? path : '/$path';
+            final url = '${ApiConstants.baseUrl}$cleanPath';
             source = UrlSource(url);
           }
           await _player.play(source);
