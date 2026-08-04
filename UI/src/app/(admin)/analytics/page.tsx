@@ -137,11 +137,9 @@ export default function AnalyticsPage() {
               show: true,
               label: "Answered",
               formatter: () => `${totalCalls > 0 ? Math.round((answered / totalCalls) * 100) : 0}%`,
-              style: {
-                fontSize: "18px",
-                fontWeight: 600,
-                color: "#111827",
-              }
+              fontSize: "18px",
+              fontWeight: 600,
+              color: "#111827",
             }
           }
         }
