@@ -103,7 +103,12 @@ export default function CallsPage() {
                         {cType}
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-semibold text-gray-900 dark:text-white">{call.phoneNumber}</td>
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-gray-900 dark:text-white">{call.phoneNumber}</div>
+                      {call.contactName && (
+                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{call.contactName}</div>
+                      )}
+                    </td>
                     <td className="px-6 py-4">{call.employeeName || `Employee #${call.employeeId}`}</td>
                     <td className="px-6 py-4 flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-gray-400" /> {formatDuration(call.duration)}
