@@ -118,8 +118,8 @@ export default function CallsPage() {
                     <td className="px-6 py-4 text-right">
                       {call.hasRecording && call.recordingUrl ? (
                         <button
-                          onClick={() => {
-                            const baseUrl = "http://callmatrixapi.runasp.net";
+                            const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5164/api";
+                            const baseUrl = apiBase.replace(/\/api\/?$/, "");
                             const fullUrl = call.recordingUrl.startsWith("http") 
                               ? call.recordingUrl 
                               : `${baseUrl}${call.recordingUrl}`;

@@ -4,6 +4,9 @@ import { callService } from "@/lib/services";
 import { Search, Play, Pause, Clock, Calendar, ShieldAlert, ArrowDownToLine, PhoneCall, Disc } from "lucide-react";
 
 export default function RecordingsPage() {
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5164/api";
+  const baseUrl = apiBase.replace(/\/api\/?$/, "");
+
   const [calls, setCalls] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -56,7 +59,6 @@ export default function RecordingsPage() {
   }, [page, search]);
 
   const handlePlayToggle = (url: string) => {
-    const baseUrl = "https://callmatrixapi.runasp.net";
     const fullUrl = url.startsWith("http") ? url : `${baseUrl}${url}`;
     
     if (activeRecordingUrl === fullUrl) {
@@ -147,7 +149,7 @@ export default function RecordingsPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <a
-                      href={call.recordingUrl.startsWith("http") ? call.recordingUrl : `https://callmatrixapi.runasp.net${call.recordingUrl}`}
+                      href={call.recordingUrl.startsWith("http") ? call.recordingUrl : `${baseUrl}${call.recordingUrl}`}
                       download
                       target="_blank"
                       rel="noopener noreferrer"
