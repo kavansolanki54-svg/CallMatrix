@@ -31,7 +31,7 @@ export default function CallsPage() {
   const fetchCalls = async () => {
     setLoading(true);
     try {
-      const res = await callService.getCalls(page, 10, search);
+      const res = await callService.getCalls(page, 5, search);
       if (res?.success && res.data) {
         setCalls(res.data.items || res.data);
       } else {
@@ -150,7 +150,7 @@ export default function CallsPage() {
             </button>
             <button
               onClick={() => setPage((p) => p + 1)}
-              disabled={calls.length < 10}
+              disabled={calls.length < 5}
               className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
             >
               Next
