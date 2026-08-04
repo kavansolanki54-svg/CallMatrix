@@ -8,6 +8,7 @@ export default function CallsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [activeRecordingUrl, setActiveRecordingUrl] = useState<string | null>(null);
 
   const formatDuration = (secs: number) => {
     if (!secs) return "00:00";
@@ -116,14 +117,18 @@ export default function CallsPage() {
                     <td className="px-6 py-4 text-gray-400 text-xs">{formatDate(call.callDateTime)}</td>
                     <td className="px-6 py-4 text-right">
                       {call.hasRecording && call.recordingUrl ? (
-                        <a
-                          href={call.recordingUrl}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          onClick={() => {
+                            const baseUrl = "http://callmatrixapi.runasp.net";
+                            const fullUrl = call.recordingUrl.startsWith("http") 
+                              ? call.recordingUrl 
+                              : `${baseUrl}${call.recordingUrl}`;
+                            setActiveRecordingUrl(fullUrl);
+                          }}
                           className="inline-block p-2 text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/50 rounded-full hover:bg-brand-100 transition"
                         >
                           <Play className="w-3.5 h-3.5 fill-current" />
-                        </a>
+                        </button>
                       ) : (
                         <span className="text-xs text-gray-400">N/A</span>
                       )}
@@ -158,6 +163,33 @@ export default function CallsPage() {
           </div>
         </div>
       </div>
+
+      {/* Floating Recording Player */}
+      {activeRecordingUrl && (
+        <div className="fixed bottom-6 right-6 left-6 md:left-auto md:w-96 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-4 flex flex-col gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+              </span>
+              <span className="text-xs font-semibold text-gray-900 dark:text-white">Playing Call Recording</span>
+            </div>
+            <button 
+              onClick={() => setActiveRecordingUrl(null)}
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
+            >
+              <span className="text-sm font-bold">✕</span>
+            </button>
+          </div>
+          <audio 
+            src={activeRecordingUrl} 
+            controls 
+            autoPlay 
+            className="w-full focus:outline-none"
+          />
+        </div>
+      )}
     </div>
   );
 }

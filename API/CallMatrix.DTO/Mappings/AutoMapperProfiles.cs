@@ -42,7 +42,9 @@ namespace CallMatrix.DTO.Mappings
 
             // Call Mappings
             CreateMap<CallMaster, CallLogResponse>()
-                .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => src.Employee.EmployeeName));
+                .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => src.Employee.EmployeeName))
+                .ForMember(dest => dest.HasRecording, opt => opt.MapFrom(src => src.CallRecordings.Any(r => r.IsActive)))
+                .ForMember(dest => dest.RecordingUrl, opt => opt.MapFrom(src => src.CallRecordings.Where(r => r.IsActive).Select(r => r.FileUrl).FirstOrDefault()));
             CreateMap<CreateCallLogRequest, CallMaster>();
             CreateMap<CallRecording, CallRecordingResponse>();
             CreateMap<UploadCallRecordingRequest, CallRecording>();

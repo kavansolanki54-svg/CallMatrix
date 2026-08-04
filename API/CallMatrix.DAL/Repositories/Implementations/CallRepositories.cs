@@ -22,6 +22,7 @@ namespace CallMatrix.DAL.Repositories.Implementations
         {
             var query = _context.CallMasters
                 .Include(c => c.Employee)
+                .Include(c => c.CallRecordings)
                 .AsNoTracking();
 
             if (filters != null && filters.TryGetValue("CompanyId", out var companyIdVal) && companyIdVal is int companyId)
