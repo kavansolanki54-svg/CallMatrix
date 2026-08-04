@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
@@ -59,6 +60,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     } catch (_) {}
   }
 
+  Future<void> _pickProfileImage(PreferencesService service) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+      if (result != null && result.files.single.path != null) {
+        final path = result.files.single.path!;
+        await service.setProfileImagePath(path);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile picture updated successfully')),
+          );
+        }
+      }
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
@@ -88,12 +107,40 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: const Color(0xFF465FFF).withOpacity(0.2),
-                      child: Text(
-                        user.userName.isNotEmpty ? user.userName[0].toUpperCase() : 'U',
-                        style: const TextStyle(color: Color(0xFF465FFF), fontWeight: FontWeight.bold, fontSize: 24),
+                    GestureDetector(
+                      onTap: () => _pickProfileImage(ref.read(preferencesProvider)),
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 32,
+                            backgroundColor: const Color(0xFF465FFF).withOpacity(0.2),
+                            backgroundImage: prefs.profileImagePath.isNotEmpty && File(prefs.profileImagePath).existsSync()
+                                ? FileImage(File(prefs.profileImagePath))
+                                : null,
+                            child: prefs.profileImagePath.isNotEmpty && File(prefs.profileImagePath).existsSync()
+                                ? null
+                                : Text(
+                                    user.userName.isNotEmpty ? user.userName[0].toUpperCase() : 'U',
+                                    style: const TextStyle(color: Color(0xFF465FFF), fontWeight: FontWeight.bold, fontSize: 26),
+                                  ),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF465FFF),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt_rounded,
+                                color: Colors.white,
+                                size: 12,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(width: 16),

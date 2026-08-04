@@ -12,18 +12,21 @@ class PreferencesService extends ChangeNotifier {
   static const _recordingPathKey = 'custom_recording_path';
   static const _aiEnabledKey = 'ai_enabled';
   static const _aiLanguageKey = 'ai_language';
+  static const _profileImageKey = 'profile_image_path';
 
   ThemeMode _themeMode = ThemeMode.system;
   bool _autoRecord = false;
   String _customRecordingPath = '';
   bool _aiEnabled = true;
   String _aiLanguage = 'English';
+  String _profileImagePath = '';
 
   ThemeMode get themeMode => _themeMode;
   bool get autoRecord => _autoRecord;
   String get customRecordingPath => _customRecordingPath;
   bool get aiEnabled => _aiEnabled;
   String get aiLanguage => _aiLanguage;
+  String get profileImagePath => _profileImagePath;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -37,6 +40,14 @@ class PreferencesService extends ChangeNotifier {
     _customRecordingPath = prefs.getString(_recordingPathKey) ?? '';
     _aiEnabled = prefs.getBool(_aiEnabledKey) ?? true;
     _aiLanguage = prefs.getString(_aiLanguageKey) ?? 'English';
+    _profileImagePath = prefs.getString(_profileImageKey) ?? '';
+    notifyListeners();
+  }
+
+  Future<void> setProfileImagePath(String path) async {
+    _profileImagePath = path;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_profileImageKey, path);
     notifyListeners();
   }
 
