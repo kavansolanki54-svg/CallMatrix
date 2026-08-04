@@ -7,6 +7,7 @@ import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
 import Select from "@/components/form/Select";
+import { useAlert } from "@/context/AlertContext";
 
 interface Role {
   roleId: number;
@@ -24,6 +25,7 @@ export default function RolesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [roleTypes, setRoleTypes] = useState<{value: string, label: string}[]>([]);
+  const { showAlert } = useAlert();
 
   const [formData, setFormData] = useState({
     roleName: "",
@@ -92,9 +94,10 @@ export default function RolesPage() {
       }
       handleCloseModal();
       fetchRoles();
+      showAlert("success", "Success", "Role saved successfully!");
     } catch (err) {
       console.error("Failed to save role", err);
-      alert("Error saving role");
+      showAlert("error", "Error", "Error saving role");
     }
   };
 
@@ -103,9 +106,10 @@ export default function RolesPage() {
       try {
         await roleService.deleteRole(id);
         fetchRoles();
+        showAlert("success", "Success", "Role deleted successfully!");
       } catch (err) {
         console.error("Failed to delete role", err);
-        alert("Error deleting role");
+        showAlert("error", "Error", "Error deleting role");
       }
     }
   };

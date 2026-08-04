@@ -9,6 +9,7 @@ import Select from "@/components/form/Select";
 import { departmentService, companyService } from "@/lib/services";
 import Loader from "@/components/ui/loader/Loader";
 import { getCompanyIdFromToken, getUserIdFromToken } from "@/lib/auth";
+import { useAlert } from "@/context/AlertContext";
 
 interface Department {
   id: number;
@@ -30,6 +31,7 @@ export default function DepartmentsPage() {
   const [departments, setDepartments] = useState<Department[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const { showAlert } = useAlert();
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -114,7 +116,7 @@ export default function DepartmentsPage() {
 
     const cid = selectedCompanyId || tokenCompanyId || companies[0]?.companyId;
     if (!cid) {
-      alert("Please select a company.");
+      showAlert("warning", "Warning", "Please select a company.");
       return;
     }
 
@@ -132,17 +134,19 @@ export default function DepartmentsPage() {
       try {
         await departmentService.updateDepartment(editingId, payload);
         await fetchDepartments();
+        showAlert("success", "Success", "Department updated successfully!");
       } catch (err: any) {
         console.warn("Update department call error fallback", err);
-        alert("Failed to update department.");
+        showAlert("error", "Error", "Failed to update department.");
       }
     } else {
       try {
         await departmentService.createDepartment(payload);
         await fetchDepartments();
+        showAlert("success", "Success", "Department created successfully!");
       } catch (err: any) {
         console.warn("Create department call error fallback", err);
-        alert("Failed to create department.");
+        showAlert("error", "Error", "Failed to create department.");
       }
     }
     setShowModal(false);

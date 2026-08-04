@@ -6,6 +6,7 @@ import InputField from "@/components/form/input/InputField";
 import Label from "@/components/form/Label";
 import Button from "@/components/ui/button/Button";
 import { Modal } from "@/components/ui/modal";
+import { useAlert } from "@/context/AlertContext";
 
 interface Menu {
   menuId: number;
@@ -23,6 +24,7 @@ export default function MenusPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingMenu, setEditingMenu] = useState<Menu | null>(null);
+  const { showAlert } = useAlert();
 
   const [formData, setFormData] = useState({
     menuName: "",
@@ -98,9 +100,10 @@ export default function MenusPage() {
       }
       handleCloseModal();
       fetchMenus();
+      showAlert("success", "Success", "Menu saved successfully!");
     } catch (err) {
       console.error("Failed to save menu", err);
-      alert("Error saving menu");
+      showAlert("error", "Error", "Error saving menu");
     }
   };
 
@@ -109,9 +112,10 @@ export default function MenusPage() {
       try {
         await menuService.deleteMenu(id);
         fetchMenus();
+        showAlert("success", "Success", "Menu deleted successfully!");
       } catch (err) {
         console.error("Failed to delete menu", err);
-        alert("Error deleting menu");
+        showAlert("error", "Error", "Error deleting menu");
       }
     }
   };

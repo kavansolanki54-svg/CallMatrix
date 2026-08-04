@@ -11,6 +11,7 @@ import { getCompanyIdFromToken, getUserIdFromToken } from "@/lib/auth";
 import { apiClient } from "@/lib/apiClient";
 import TextArea from "@/components/form/input/TextArea";
 import Loader from "@/components/ui/loader/Loader";
+import { useAlert } from "@/context/AlertContext";
 
 interface Designation {
   id: number;
@@ -37,6 +38,7 @@ export default function DesignationsPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const { showAlert } = useAlert();
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -137,11 +139,11 @@ export default function DesignationsPage() {
     const did = selectedDepartmentId || departments[0]?.id;
 
     if (!cid) {
-      alert("Please select a company.");
+      showAlert("warning", "Warning", "Please select a company.");
       return;
     }
     if (!did) {
-      alert("Please select a department.");
+      showAlert("warning", "Warning", "Please select a department.");
       return;
     }
 
@@ -160,17 +162,19 @@ export default function DesignationsPage() {
       try {
         await designationService.updateDesignation(editingId, payload);
         await fetchDesignations();
+        showAlert("success", "Success", "Designation updated successfully!");
       } catch (err: any) {
         console.warn("Update designation call error fallback", err);
-        alert("Failed to update designation.");
+        showAlert("error", "Error", "Failed to update designation.");
       }
     } else {
       try {
         await designationService.createDesignation(payload);
         await fetchDesignations();
+        showAlert("success", "Success", "Designation created successfully!");
       } catch (err: any) {
         console.warn("Create designation call error fallback", err);
-        alert("Failed to create designation.");
+        showAlert("error", "Error", "Failed to create designation.");
       }
     }
     setShowModal(false);

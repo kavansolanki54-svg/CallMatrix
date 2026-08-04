@@ -10,6 +10,7 @@ import TextArea from "@/components/form/input/TextArea";
 import { companyService, apiClient } from "@/lib/services";
 import { getCompanyIdFromToken } from "@/lib/auth";
 import Loader from "@/components/ui/loader/Loader";
+import { useAlert } from "@/context/AlertContext";
 
 interface Branch {
   id: number;
@@ -36,6 +37,7 @@ export default function BranchesPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const { showAlert } = useAlert();
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -158,7 +160,7 @@ export default function BranchesPage() {
 
     const cid = selectedCompanyId || tokenCompanyId || companies[0]?.companyId;
     if (!cid) {
-      alert("Please select a company.");
+      showAlert("warning", "Warning", "Please select a company.");
       return;
     }
 
@@ -179,17 +181,19 @@ export default function BranchesPage() {
       try {
         await apiClient.put(`/branches/${editingId}`, payload);
         await fetchBranches();
+        showAlert("success", "Success", "Branch updated successfully!");
       } catch (err: any) {
         console.warn("Update branch call error", err);
-        alert("Failed to update branch.");
+        showAlert("error", "Error", "Failed to update branch.");
       }
     } else {
       try {
         await apiClient.post("/branches", payload);
         await fetchBranches();
+        showAlert("success", "Success", "Branch created successfully!");
       } catch (err: any) {
         console.warn("Create branch call error", err);
-        alert("Failed to create branch.");
+        showAlert("error", "Error", "Failed to create branch.");
       }
     }
     setShowModal(false);

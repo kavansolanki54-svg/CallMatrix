@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { roleService } from "@/lib/services";
 import { Shield, Save, CheckSquare, Square, ChevronRight, ChevronDown } from "lucide-react";
 import Select from "@/components/form/Select";
+import { useAlert } from "@/context/AlertContext";
 
 export default function PermissionsPage() {
   const [roles, setRoles] = useState<any[]>([]);
@@ -10,6 +11,7 @@ export default function PermissionsPage() {
   const [permissions, setPermissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [collapsedMenus, setCollapsedMenus] = useState<Record<number, boolean>>({});
+  const { showAlert } = useAlert();
 
   useEffect(() => {
     const fetchRoles = async () => {
@@ -84,9 +86,10 @@ export default function PermissionsPage() {
   const handleSave = async () => {
     try {
       await roleService.updatePermissions({ roleId: selectedRole, permissions });
-      alert("Role permissions saved successfully!");
+      showAlert("success", "Success", "Role permissions saved successfully!");
     } catch (err) {
       console.error("Failed to save permissions", err);
+      showAlert("error", "Error", "Failed to save permissions.");
     }
   };
 

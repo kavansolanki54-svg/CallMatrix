@@ -10,6 +10,7 @@ import MultiSelect from "@/components/form/MultiSelect";
 import { employeeService, companyService, apiClient, departmentService, roleService, designationService } from "@/lib/services";
 import Loader from "@/components/ui/loader/Loader";
 import { getCompanyIdFromToken } from "@/lib/auth";
+import { useAlert } from "@/context/AlertContext";
 
 interface Employee {
   id: number;
@@ -42,6 +43,7 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const { showAlert } = useAlert();
 
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -245,13 +247,13 @@ export default function EmployeesPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!firstName || !email) {
-      alert("First Name and Email are required.");
+      showAlert("warning", "Warning", "First Name and Email are required.");
       return;
     }
 
     const cid = selectedCompanyId || tokenCompanyId || companies[0]?.companyId;
     if (!cid) {
-      alert("Please select a company.");
+      showAlert("warning", "Warning", "Please select a company.");
       return;
     }
 
@@ -275,26 +277,28 @@ export default function EmployeesPage() {
       try {
         const res = await employeeService.updateEmployee(editingId, payload);
         if (res && res.success === false) {
-          alert(res.message || "Failed to update employee.");
+          showAlert("error", "Error", res.message || "Failed to update employee.");
           return;
         }
         await fetchData();
+        showAlert("success", "Success", "Employee updated successfully!");
       } catch (err) {
         console.warn("Update employee call fallback", err);
-        alert("Failed to update employee.");
+        showAlert("error", "Error", "Failed to update employee.");
         return;
       }
     } else {
       try {
         const res = await employeeService.createEmployee(payload);
         if (res && res.success === false) {
-          alert(res.message || "Failed to create employee.");
+          showAlert("error", "Error", res.message || "Failed to create employee.");
           return;
         }
         await fetchData();
+        showAlert("success", "Success", "Employee created successfully!");
       } catch (err) {
         console.warn("Create employee call fallback", err);
-        alert("Failed to create employee.");
+        showAlert("error", "Error", "Failed to create employee.");
         return;
       }
     }
