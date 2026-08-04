@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:dio/dio.dart';
 import '../../features/auth/models/user_model.dart';
 import '../../features/auth/repositories/auth_repository.dart';
 import '../../services/device_registration_service.dart';
@@ -105,7 +106,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
       return true;
     } catch (e) {
       String msg = 'Connection error. Please try again.';
-      if (e is Exception) {
+      if (e is DioException) {
+        if (e.response?.statusCode == 401) {
+          msg = 'Invalid email or password. Please check your credentials.';
+        } else if (e.response?.statusCode == 400) {
+          msg = e.response?.data['message'] ?? 'Invalid request. Please try again.';
+        } else if (e.type == DioExceptionType.connectionTimeout || e.type == DioExceptionType.connectionError) {
+          msg = 'Cannot connect to the server. Please check your internet connection.';
+        } else {
+          msg = 'Server error. Please try again later.';
+        }
+      } else if (e is Exception) {
         final eMsg = e.toString().replaceFirst('Exception: ', '');
         if (eMsg.isNotEmpty && !eMsg.contains('SocketException')) msg = eMsg;
       }
