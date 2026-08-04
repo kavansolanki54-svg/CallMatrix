@@ -76,7 +76,7 @@ namespace CallMatrix.DAL.Repositories.Generic
                 .ToListAsync();
         }
 
-        public async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
+        public virtual async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
             int page, 
             int pageSize, 
             string? search = null, 

@@ -12,6 +12,40 @@ namespace CallMatrix.DAL.Repositories.Implementations
         public CallRepository(CallMatrixDbContext context, IDbConnectionFactory connectionFactory)
             : base(context, connectionFactory) { }
 
+        public override async Task<(IEnumerable<CallMaster> Items, int TotalCount)> GetPagedAsync(
+            int page, 
+            int pageSize, 
+            string? search = null, 
+            string? sortBy = null, 
+            string? sortOrder = "ASC", 
+            Dictionary<string, object>? filters = null)
+        {
+            var query = _context.CallMasters
+                .Include(c => c.Employee)
+                .AsNoTracking();
+
+            if (filters != null && filters.TryGetValue("CompanyId", out var companyIdVal) && companyIdVal is int companyId)
+            {
+                query = query.Where(c => c.CompanyId == companyId);
+            }
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(c => c.PhoneNumber.Contains(search) || (c.ContactName != null && c.ContactName.Contains(search)));
+            }
+
+            // Default sort by CallDateTime DESC (latest call first)
+            query = query.OrderByDescending(c => c.CallDateTime);
+
+            int totalCount = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
+
         public async Task<IEnumerable<CallMaster>> GetCallsByEmployeeIdAsync(int employeeId)
         {
             return await _context.CallMasters
