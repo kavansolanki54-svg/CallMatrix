@@ -98,7 +98,19 @@ namespace CallMatrix.BLL.Services
 
             if (fileStream != null && fileStream.Length > 0)
             {
-                var uploadsFolder = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "recordings");
+                // Extract date components
+                var targetDate = request.RecordingDate ?? call.CallDateTime;
+                var year = targetDate.ToString("yyyy");
+                var month = targetDate.ToString("MM");
+                var day = targetDate.ToString("dd");
+
+                // Clean phone number for safety in folder naming
+                var cleanPhone = string.IsNullOrEmpty(call.PhoneNumber) ? "Unknown" : call.PhoneNumber.Replace("+", "").Replace(" ", "").Replace("-", "");
+
+                // Build relative directory structure: recordings/Company_X/Employee_Y/Year/Month/Day/Phone
+                var relativeDir = System.IO.Path.Combine("recordings", $"Company_{call.CompanyId}", $"Employee_{employeeId}", year, month, day, cleanPhone);
+                var uploadsFolder = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", relativeDir);
+
                 if (!System.IO.Directory.Exists(uploadsFolder))
                 {
                     System.IO.Directory.CreateDirectory(uploadsFolder);
@@ -115,7 +127,9 @@ namespace CallMatrix.BLL.Services
                     await fileStream.CopyToAsync(targetStream);
                 }
 
-                fileUrl = $"/recordings/{uniqueFileName}";
+                // Construct static file URL
+                var relativeFileUrl = System.IO.Path.Combine(relativeDir, uniqueFileName).Replace("\\", "/");
+                fileUrl = $"/{relativeFileUrl}";
             }
 
             var entity = _mapper.Map<CallRecording>(request);
