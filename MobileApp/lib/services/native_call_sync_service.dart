@@ -133,18 +133,32 @@ class NativeCallSyncService {
                 if (file.existsSync()) {
                   final phoneNumber = log['phoneNumber'] as String? ?? '';
                   final startTimeMs = log['startTime'] is int ? log['startTime'] as int : 0;
-                  final logDt = DateTime.fromMillisecondsSinceEpoch(startTimeMs);
+                  final logDt = DateTime.fromMillisecondsSinceEpoch(startTimeMs).toUtc();
 
                   // Find matching call log in fetched calls
                   final matchedCall = fetchedCalls.firstWhere(
                     (fc) {
                       final fcPhone = fc['phoneNumber'] as String? ?? '';
                       final fcTimeStr = fc['callDateTime'] as String? ?? '';
-                      if (fcPhone.replaceAll(' ', '') != phoneNumber.replaceAll(' ', '')) return false;
-                      final fcTime = DateTime.tryParse(fcTimeStr);
+                      
+                      // Robust phone number match (comparing last 10 digits)
+                      final cleanFcPhone = fcPhone.replaceAll(RegExp(r'\D'), '');
+                      final cleanLocalPhone = phoneNumber.replaceAll(RegExp(r'\D'), '');
+                      bool isPhoneMatched = false;
+                      if (cleanFcPhone.length >= 10 && cleanLocalPhone.length >= 10) {
+                        isPhoneMatched = cleanFcPhone.substring(cleanFcPhone.length - 10) == 
+                                         cleanLocalPhone.substring(cleanLocalPhone.length - 10);
+                      } else {
+                        isPhoneMatched = cleanFcPhone == cleanLocalPhone;
+                      }
+                      
+                      if (!isPhoneMatched) return false;
+
+                      final fcTime = DateTime.tryParse(fcTimeStr)?.toUtc();
                       if (fcTime == null) return false;
-                      // Match within 60 second difference tolerance
-                      return fcTime.difference(logDt).inSeconds.abs() < 60;
+
+                      // Match within 90 second difference tolerance (accounting for synchronization latency)
+                      return fcTime.difference(logDt).inSeconds.abs() < 90;
                     },
                     orElse: () => null,
                   );
