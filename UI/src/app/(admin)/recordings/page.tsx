@@ -12,6 +12,7 @@ export default function RecordingsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [activeRecordingUrl, setActiveRecordingUrl] = useState<string | null>(null);
+  const [activeCallId, setActiveCallId] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const today = new Date();
@@ -66,13 +67,14 @@ export default function RecordingsPage() {
     fetchRecordings();
   }, [page, search, selectedDate]);
 
-  const handlePlayToggle = (url: string) => {
+  const handlePlayToggle = (url: string, callId: number) => {
     const fullUrl = url.startsWith("http") ? url : `${baseUrl}${url}`;
     
-    if (activeRecordingUrl === fullUrl) {
+    if (activeCallId === callId) {
       setIsPlaying(!isPlaying);
     } else {
       setActiveRecordingUrl(fullUrl);
+      setActiveCallId(callId);
       setIsPlaying(true);
     }
   };
@@ -196,7 +198,7 @@ export default function RecordingsPage() {
 
                 <div className="border-t border-gray-50 dark:border-gray-800/80 pt-3 mt-4 space-y-2">
                   {group.recordings.map((rec) => {
-                    const isCurrent = activeRecordingUrl?.includes(rec.recordingUrl);
+                    const isCurrent = activeCallId === rec.callId;
                     const isThisPlaying = isCurrent && isPlaying;
                     const cType = rec.callType || "Incoming";
                     
@@ -243,7 +245,7 @@ export default function RecordingsPage() {
                             <ArrowDownToLine className="w-3.5 h-3.5" />
                           </a>
                           <button
-                            onClick={() => handlePlayToggle(rec.recordingUrl)}
+                            onClick={() => handlePlayToggle(rec.recordingUrl, rec.callId)}
                             className={`p-1 rounded-lg transition shadow-sm border ${
                               isThisPlaying
                                 ? "bg-indigo-600 border-indigo-600 text-white shadow-indigo-600/20"
@@ -302,6 +304,7 @@ export default function RecordingsPage() {
             <button 
               onClick={() => {
                 setActiveRecordingUrl(null);
+                setActiveCallId(null);
                 setIsPlaying(false);
               }}
               className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
