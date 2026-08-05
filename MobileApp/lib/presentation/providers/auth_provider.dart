@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import '../../features/auth/models/user_model.dart';
 import '../../features/auth/repositories/auth_repository.dart';
 import '../../services/device_registration_service.dart';
+import '../../core/constants/api_constants.dart';
 
 class AuthState {
   final bool isAuthenticated;
@@ -64,6 +65,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('token', token);
           await prefs.setString('employeeId', empIdStr ?? '0');
+          await prefs.setString('baseUrl', ApiConstants.baseUrl);
         } catch (_) {}
 
         state = AuthState(
@@ -95,6 +97,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', result.accessToken);
         await prefs.setString('employeeId', result.user.employeeId.toString());
+        await prefs.setString('baseUrl', ApiConstants.baseUrl);
       } catch (_) {}
 
       state = AuthState(

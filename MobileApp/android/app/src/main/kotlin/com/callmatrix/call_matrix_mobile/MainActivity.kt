@@ -17,6 +17,11 @@ import java.util.*
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.dallytasksheet.dally_task_sheet/calls"
 
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
+
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
