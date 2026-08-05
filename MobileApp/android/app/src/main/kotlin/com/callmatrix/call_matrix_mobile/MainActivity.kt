@@ -150,7 +150,7 @@ class MainActivity: FlutterActivity() {
                         else -> "Unknown"
                     }
 
-                    val recordingPath = findCallRecordingOptimized(number, date, todayFiles)
+                    val recordingPath = findCallRecordingOptimized(number, date, duration, todayFiles)
 
                     val log = mapOf(
                         "phoneNumber" to number,
@@ -208,12 +208,14 @@ class MainActivity: FlutterActivity() {
         return todayFiles
     }
 
-    private fun queryMediaStore(phoneNumber: String, startTimeMs: Long): String? {
+    private fun queryMediaStore(phoneNumber: String, startTimeMs: Long, durationSec: Int): String? {
         try {
             val projection = arrayOf(MediaStore.Audio.Media.DATA)
             val cleanPhone = phoneNumber.replace("[^0-9]".toRegex(), "")
-            val startWindowSec = (startTimeMs - 15000) / 1000
-            val endWindowSec = (startTimeMs + 45000) / 1000
+            
+            // Search from start of call to 20 seconds after end of call
+            val startWindowSec = (startTimeMs - 10000) / 1000
+            val endWindowSec = (startTimeMs + (durationSec * 1000L) + 20000) / 1000
 
             val selection = "${MediaStore.Audio.Media.DATE_ADDED} >= ? AND ${MediaStore.Audio.Media.DATE_ADDED} <= ?"
             val selectionArgs = arrayOf(startWindowSec.toString(), endWindowSec.toString())
@@ -228,38 +230,55 @@ class MainActivity: FlutterActivity() {
 
             mediaCursor?.use {
                 val dataIndex = it.getColumnIndex(MediaStore.Audio.Media.DATA)
+                val candidates = mutableListOf<String>()
                 while (it.moveToNext()) {
                     val filePath = if (dataIndex >= 0) it.getString(dataIndex) else null
                     if (!filePath.isNullOrEmpty()) {
                         val fileName = File(filePath).name.lowercase()
-                        if (cleanPhone.isEmpty() || fileName.contains(cleanPhone) || fileName.contains("call") || fileName.contains("rec")) {
+                        if (cleanPhone.isNotEmpty() && fileName.contains(cleanPhone)) {
                             return filePath
                         }
+                        if (fileName.contains("call") || fileName.contains("rec")) {
+                            candidates.add(filePath)
+                        }
                     }
+                }
+                if (candidates.isNotEmpty()) {
+                    return candidates.first()
                 }
             }
         } catch (e: Exception) {}
         return null
     }
 
-    private fun findCallRecordingOptimized(phoneNumber: String, startTimeMs: Long, todayFiles: List<File>): String? {
+    private fun findCallRecordingOptimized(phoneNumber: String, startTimeMs: Long, durationSec: Int, todayFiles: List<File>): String? {
         // 1. Try MediaStore first
-        val mediaPath = queryMediaStore(phoneNumber, startTimeMs)
+        val mediaPath = queryMediaStore(phoneNumber, startTimeMs, durationSec)
         if (mediaPath != null) return mediaPath
 
         // 2. Fallback to cached filesystem list search
         try {
             val cleanPhone = phoneNumber.replace("[^0-9]".toRegex(), "")
-            val startWindow = startTimeMs - 15000
-            val endWindow = startTimeMs + 45000
+            val startWindow = startTimeMs - 10000
+            val endWindow = startTimeMs + (durationSec * 1000L) + 20000
 
+            // Prioritize files containing the phone number
             for (file in todayFiles) {
                 val lastModified = file.lastModified()
                 val name = file.name.lowercase()
                 val isPhoneMatch = cleanPhone.isNotEmpty() && name.contains(cleanPhone)
                 val isTimeMatch = lastModified in startWindow..endWindow
 
-                if (isTimeMatch || (isPhoneMatch && isTimeMatch)) {
+                if (isPhoneMatch && isTimeMatch) {
+                    return file.absolutePath
+                }
+            }
+
+            // Fallback to just time match
+            for (file in todayFiles) {
+                val lastModified = file.lastModified()
+                val isTimeMatch = lastModified in startWindow..endWindow
+                if (isTimeMatch) {
                     return file.absolutePath
                 }
             }
@@ -276,7 +295,7 @@ class MainActivity: FlutterActivity() {
             set(Calendar.MILLISECOND, 0)
         }.timeInMillis
         val cached = cacheTodayFiles("", todayStart)
-        return findCallRecordingOptimized(phoneNumber, startTimeMs, cached)
+        return findCallRecordingOptimized(phoneNumber, startTimeMs, 30, cached)
     }
 
     private fun getDeviceDetails(): Map<String, String> {

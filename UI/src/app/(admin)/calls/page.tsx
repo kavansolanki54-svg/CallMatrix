@@ -310,6 +310,7 @@ export default function CallsPage() {
             </button>
           </div>
           <audio 
+            key={activeRecordingUrl}
             src={activeRecordingUrl} 
             controls 
             autoPlay 

@@ -310,6 +310,7 @@ export default function RecordingsPage() {
             </button>
           </div>
           <audio 
+            key={activeRecordingUrl}
             src={activeRecordingUrl} 
             controls 
             autoPlay 
