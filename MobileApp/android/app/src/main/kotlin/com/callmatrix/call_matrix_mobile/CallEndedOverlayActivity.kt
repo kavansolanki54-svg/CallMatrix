@@ -486,7 +486,9 @@ class CallEndedOverlayActivity : Activity() {
         // Trigger background REST sync silently on separate thread
         triggerBackgroundSync()
 
-        triggerMainActivitySync()
+        if (actionType != "Exit") {
+            triggerMainActivitySync()
+        }
         finish()
     }
 
