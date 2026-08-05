@@ -65,378 +65,170 @@ class CallEndedOverlayActivity : Activity() {
         timeStr: String,
         callType: String
     ): View {
-        val rootScroll = ScrollView(this).apply {
-            isFillViewport = true
-            setBackgroundColor(Color.parseColor("#44000000"))
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(Color.parseColor("#B30B0F19")) // Dimmed translucent deep dark background
         }
 
-        val container = LinearLayout(this).apply {
+        // Dialog Box Container
+        val dialogBox = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER
-            setPadding(dpToPx(16), dpToPx(24), dpToPx(16), dpToPx(24))
-        }
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dpToPx(28), dpToPx(32), dpToPx(28), dpToPx(32))
+            
+            // Material 3 Dark theme card background: #1A1C1E
+            background = createCardDrawable(
+                Color.parseColor("#1A1C1E"), 
+                dpToPx(24).toFloat(), 
+                Color.parseColor("#2D3135") // Subtle border
+            )
 
-        // --- 1. Notification Card Top Banner ---
-        val notifCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dpToPx(16), dpToPx(12), dpToPx(16), dpToPx(12))
-            background = createCardDrawable(Color.WHITE, dpToPx(16).toFloat(), Color.parseColor("#E2E8F0"))
-            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                setMargins(0, 0, 0, dpToPx(12))
+            val lp = FrameLayout.LayoutParams(
+                dpToPx(320),
+                FrameLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                gravity = Gravity.CENTER
             }
             layoutParams = lp
         }
 
-        val notifHeaderRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
+        // --- 1. Green Circular Checkmark Icon ---
+        val iconContainer = FrameLayout(this).apply {
+            val size = dpToPx(64)
+            val lp = LinearLayout.LayoutParams(size, size).apply {
+                setMargins(0, 0, 0, dpToPx(16))
+            }
+            layoutParams = lp
+            
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.parseColor("#1B3D2F")) // Dark green translucent circle
+            }
         }
 
-        val appIcon = TextView(this).apply {
-            text = "🎯"
-            textSize = 12f
-        }
-
-        val notifTitle = TextView(this).apply {
-            text = "  CallMatrix • Now 🔔"
-            setTextColor(Color.parseColor("#475569"))
-            textSize = 12f
+        val checkmark = TextView(this).apply {
+            text = "✓"
+            setTextColor(Color.parseColor("#34D399")) // Material Green/Emerald
+            textSize = 28f
             typeface = Typeface.DEFAULT_BOLD
-        }
-        notifHeaderRow.addView(appIcon)
-        notifHeaderRow.addView(notifTitle)
-        notifCard.addView(notifHeaderRow)
-
-        val displayName = if (contactName.isNotEmpty()) contactName else phoneNumber
-        val notifBody = TextView(this).apply {
-            text = "Tap to add notes for $displayName"
-            setTextColor(Color.parseColor("#0F172A"))
-            textSize = 15f
-            typeface = Typeface.DEFAULT_BOLD
-            setPadding(0, dpToPx(4), 0, 0)
-        }
-        notifCard.addView(notifBody)
-
-        val notifSub = TextView(this).apply {
-            text = "Notes"
-            setTextColor(Color.parseColor("#64748B"))
-            textSize = 13f
-        }
-        notifCard.addView(notifSub)
-
-        container.addView(notifCard)
-
-        // --- 2. Main "Last Call Details" Modal Card ---
-        val mainCard = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dpToPx(20), dpToPx(20), dpToPx(20), dpToPx(20))
-            background = createCardDrawable(Color.WHITE, dpToPx(24).toFloat(), Color.parseColor("#CBD5E1"))
-            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+            gravity = Gravity.CENTER
+            val lp = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
             layoutParams = lp
         }
+        iconContainer.addView(checkmark)
+        dialogBox.addView(iconContainer)
 
-        // Header: "Last Call Details" + "X"
-        val headerRow = RelativeLayout(this).apply {
-            setPadding(0, 0, 0, dpToPx(16))
-        }
-
+        // --- 2. Title "Call Ended" ---
         val titleTxt = TextView(this).apply {
-            text = "Last Call Details"
-            setTextColor(Color.parseColor("#0F172A"))
-            textSize = 18f
-            typeface = Typeface.DEFAULT_BOLD
+            text = "Call Ended"
+            setTextColor(Color.parseColor("#F1F5F9")) // Premium off-white
+            textSize = 22f
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            gravity = Gravity.CENTER_HORIZONTAL
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 0, 0, dpToPx(20))
+            }
+            layoutParams = lp
         }
-        val titleParams = RelativeLayout.LayoutParams(
-            RelativeLayout.LayoutParams.WRAP_CONTENT,
-            RelativeLayout.LayoutParams.WRAP_CONTENT
-        ).apply {
-            addRule(RelativeLayout.ALIGN_PARENT_LEFT)
-            addRule(RelativeLayout.CENTER_VERTICAL)
-        }
-        headerRow.addView(titleTxt, titleParams)
+        dialogBox.addView(titleTxt)
 
-        val closeBtn = TextView(this).apply {
-            text = "✕"
-            setTextColor(Color.parseColor("#0F172A"))
+        // --- 3. Contact Name & Phone Number (Text only, no avatar) ---
+        val displayName = if (contactName.isNotEmpty()) contactName else "Unknown Contact"
+        val nameTxt = TextView(this).apply {
+            text = displayName
+            setTextColor(Color.WHITE)
             textSize = 20f
-            typeface = Typeface.DEFAULT_BOLD
-            setPadding(dpToPx(8), dpToPx(4), dpToPx(8), dpToPx(4))
-            setOnClickListener { 
-                triggerMainActivitySync()
-                finish() 
-            }
-        }
-        val closeParams = RelativeLayout.LayoutParams(
-            RelativeLayout.LayoutParams.WRAP_CONTENT,
-            RelativeLayout.LayoutParams.WRAP_CONTENT
-        ).apply {
-            addRule(RelativeLayout.ALIGN_PARENT_RIGHT)
-            addRule(RelativeLayout.CENTER_VERTICAL)
-        }
-        headerRow.addView(closeBtn, closeParams)
-
-        mainCard.addView(headerRow)
-
-        // Call From -> Call To Box
-        val callBox = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12))
-            background = createCardDrawable(Color.parseColor("#F8FAFC"), dpToPx(12).toFloat(), Color.parseColor("#E2E8F0"))
-            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                setMargins(0, 0, 0, dpToPx(16))
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            gravity = Gravity.CENTER_HORIZONTAL
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 0, 0, dpToPx(4))
             }
             layoutParams = lp
         }
+        dialogBox.addView(nameTxt)
 
-        // Call From Column
-        val callFromCol = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            layoutParams = lp
-        }
-        val callFromLbl = TextView(this).apply {
-            text = "Call From"
-            setTextColor(Color.parseColor("#0F172A"))
-            textSize = 13f
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        val callFromVal = TextView(this).apply {
-            text = callFromNumber
-            setTextColor(Color.parseColor("#475569"))
-            textSize = 12f
-            setPadding(0, dpToPx(4), 0, 0)
-        }
-        callFromCol.addView(callFromLbl)
-        callFromCol.addView(callFromVal)
-        callBox.addView(callFromCol)
-
-        // Arrow
-        val arrowTxt = TextView(this).apply {
-            text = "→  "
-            setTextColor(Color.parseColor("#94A3B8"))
-            textSize = 18f
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        callBox.addView(arrowTxt)
-
-        // Call To Column
-        val callToCol = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1.2f)
-            layoutParams = lp
-        }
-        val callToLbl = TextView(this).apply {
-            text = "Call To"
-            setTextColor(Color.parseColor("#0F172A"))
-            textSize = 13f
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        val callToName = TextView(this).apply {
-            text = contactName.ifEmpty { phoneNumber }
-            setTextColor(Color.parseColor("#0F172A"))
-            textSize = 12f
-            typeface = Typeface.DEFAULT_BOLD
-            setPadding(0, dpToPx(2), 0, 0)
-        }
-        val callToNum = TextView(this).apply {
+        val phoneTxt = TextView(this).apply {
             text = phoneNumber
-            setTextColor(Color.parseColor("#475569"))
-            textSize = 11f
-        }
-        callToCol.addView(callToLbl)
-        callToCol.addView(callToName)
-        if (contactName.isNotEmpty()) {
-            callToCol.addView(callToNum)
-        }
-        callBox.addView(callToCol)
-
-        mainCard.addView(callBox)
-
-        // Call Stats Section
-        val statsRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dpToPx(8), 0, dpToPx(16))
-        }
-
-        // Col 1: Call Type
-        val typeCol = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            layoutParams = lp
-        }
-        val typeLbl = TextView(this).apply {
-            text = "Call Type"
-            setTextColor(Color.parseColor("#0F172A"))
-            textSize = 14f
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        val typeValRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, dpToPx(4), 0, 0)
-        }
-        val typeIconText = TextView(this).apply {
-            val isOut = callType.contains("Outgoing", ignoreCase = true)
-            text = if (isOut) "📞 Outgoing " else "📞 Incoming "
-            setTextColor(if (isOut) Color.parseColor("#D97706") else Color.parseColor("#16A34A"))
-            textSize = 12f
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        val simBadge = TextView(this).apply {
-            text = " 1 "
-            setTextColor(Color.parseColor("#475569"))
-            textSize = 10f
-            setPadding(dpToPx(4), dpToPx(1), dpToPx(4), dpToPx(1))
-            background = createCardDrawable(Color.TRANSPARENT, dpToPx(4).toFloat(), Color.parseColor("#CBD5E1"))
-        }
-        typeValRow.addView(typeIconText)
-        typeValRow.addView(simBadge)
-        typeCol.addView(typeLbl)
-        typeCol.addView(typeValRow)
-        statsRow.addView(typeCol)
-
-        // Col 2: Duration
-        val durCol = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            layoutParams = lp
-        }
-        val durLbl = TextView(this).apply {
-            text = "Duration"
-            setTextColor(Color.parseColor("#0F172A"))
-            textSize = 14f
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        val durVal = TextView(this).apply {
-            text = "⏱ $callDuration"
-            setTextColor(Color.parseColor("#334155"))
-            textSize = 12f
-            setPadding(0, dpToPx(4), 0, 0)
-        }
-        durCol.addView(durLbl)
-        durCol.addView(durVal)
-        statsRow.addView(durCol)
-
-        // Col 3: Call Time
-        val timeCol = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            layoutParams = lp
-        }
-        val timeLbl = TextView(this).apply {
-            text = "Call Time"
-            setTextColor(Color.parseColor("#0F172A"))
-            textSize = 14f
-            typeface = Typeface.DEFAULT_BOLD
-        }
-        val timeVal = TextView(this).apply {
-            text = "🕒 $timeStr"
-            setTextColor(Color.parseColor("#334155"))
-            textSize = 12f
-            setPadding(0, dpToPx(4), 0, 0)
-        }
-        timeCol.addView(timeLbl)
-        timeCol.addView(timeVal)
-        statsRow.addView(timeCol)
-
-        mainCard.addView(statsRow)
-
-        // Divider
-        val divider = View(this).apply {
-            setBackgroundColor(Color.parseColor("#E2E8F0"))
-            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(1)).apply {
-                setMargins(0, 0, 0, dpToPx(16))
-            }
-            layoutParams = lp
-        }
-        mainCard.addView(divider)
-
-        // Add Note Section Header
-        val addNoteLbl = TextView(this).apply {
-            text = "Add Note"
-            setTextColor(Color.parseColor("#0F172A"))
+            setTextColor(Color.parseColor("#94A3B8")) // Slate gray
             textSize = 15f
-            typeface = Typeface.DEFAULT_BOLD
-            setPadding(0, 0, 0, dpToPx(8))
-        }
-        mainCard.addView(addNoteLbl)
-
-        // Add Note Container Box
-        val noteContainer = RelativeLayout(this).apply {
-            background = createCardDrawable(Color.WHITE, dpToPx(12).toFloat(), Color.parseColor("#CBD5E1"))
-            setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12))
-            val lp = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
-                setMargins(0, 0, 0, dpToPx(16))
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+            gravity = Gravity.CENTER_HORIZONTAL
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 0, 0, dpToPx(20))
             }
             layoutParams = lp
         }
+        dialogBox.addView(phoneTxt)
 
-        noteEditText = EditText(this).apply {
-            id = View.generateViewId()
-            hint = "Type your call summary or use '/' to add call note template(s) quickly."
-            setHintTextColor(Color.parseColor("#94A3B8"))
-            setTextColor(Color.parseColor("#0F172A"))
-            textSize = 13f
-            minLines = 3
-            maxLines = 5
-            gravity = Gravity.TOP or Gravity.LEFT
-            background = null
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+        // --- 4. Call Duration & Call End Time (Clean typography, no icons) ---
+        val infoTxt = TextView(this).apply {
+            val displayDuration = if (callDuration.contains("0h 0m")) callDuration.replace("0h 0m ", "") else callDuration
+            text = "Duration: $displayDuration  •  Ended at $timeStr"
+            setTextColor(Color.parseColor("#64748B")) // Dimmer slate gray
+            textSize = 13.5f
+            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
+            gravity = Gravity.CENTER_HORIZONTAL
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 0, 0, dpToPx(32))
+            }
+            layoutParams = lp
         }
-        val editParams = RelativeLayout.LayoutParams(
-            RelativeLayout.LayoutParams.MATCH_PARENT,
-            RelativeLayout.LayoutParams.WRAP_CONTENT
-        ).apply {
-            setMargins(0, 0, dpToPx(36), 0)
-        }
-        noteContainer.addView(noteEditText, editParams)
+        dialogBox.addView(infoTxt)
 
-        // Voice Microphone Button
-        val micBtn = TextView(this).apply {
-            text = "🎤"
-            textSize = 18f
-            setPadding(dpToPx(6), dpToPx(6), dpToPx(6), dpToPx(6))
-            background = createCardDrawable(Color.parseColor("#F1F5F9"), dpToPx(20).toFloat(), Color.parseColor("#CBD5E1"))
-            setOnClickListener { triggerSpeechToText() }
-        }
-        val micParams = RelativeLayout.LayoutParams(
-            RelativeLayout.LayoutParams.WRAP_CONTENT,
-            RelativeLayout.LayoutParams.WRAP_CONTENT
-        ).apply {
-            addRule(RelativeLayout.ALIGN_PARENT_RIGHT)
-            addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
-        }
-        noteContainer.addView(micBtn, micParams)
+        // --- 5. Full-Width Green "Done" Button with Rounded Corners ---
+        val doneBtn = Button(this).apply {
+            text = "Done"
+            setTextColor(Color.parseColor("#0F172A")) // Slate 900
+            textSize = 15f
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            isAllCaps = false
+            
+            background = GradientDrawable().apply {
+                cornerRadius = dpToPx(28).toFloat()
+                setColor(Color.parseColor("#10B981")) // Material Green/Emerald
+            }
 
-        mainCard.addView(noteContainer)
+            setOnClickListener {
+                saveNoteAndClose("Done")
+            }
 
-        // Action Buttons Row
-        val actionRow = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(50)
+            )
+            layoutParams = lp
         }
+        dialogBox.addView(doneBtn)
 
-        val btn1 = createActionButton("Save & Exit") {
-            saveNoteAndClose("Exit")
+        root.addView(dialogBox)
+        return root
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        return (dp * resources.displayMetrics.density).toInt()
+    }
+
+    private fun createCardDrawable(color: Int, radius: Float, borderColor: Int): GradientDrawable {
+        return GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radius
+            setColor(color)
+            setStroke(dpToPx(1), borderColor)
         }
-        val btn2 = createActionButton("Save &\nConnect") {
-            saveNoteAndClose("Connect")
-        }
-        val btn3 = createActionButton("Save & Add\nLead") {
-            saveNoteAndClose("AddLead")
-        }
-
-        actionRow.addView(btn1)
-        actionRow.addView(btn2)
-        actionRow.addView(btn3)
-
-        mainCard.addView(actionRow)
-
-        container.addView(mainCard)
-        rootScroll.addView(container)
-        return rootScroll
     }
 
     private fun createActionButton(label: String, onClick: () -> Unit): Button {
@@ -480,15 +272,8 @@ class CallEndedOverlayActivity : Activity() {
     }
 
     private fun saveNoteAndClose(actionType: String) {
-        val noteText = noteEditText?.text?.toString()?.trim() ?: ""
-        Toast.makeText(this, "Note Saved ($actionType)", Toast.LENGTH_SHORT).show()
-        
         // Trigger background REST sync silently on separate thread
         triggerBackgroundSync()
-
-        if (actionType != "Exit") {
-            triggerMainActivitySync()
-        }
         finish()
     }
 
@@ -885,17 +670,4 @@ class CallEndedOverlayActivity : Activity() {
         return todayFiles
     }
 
-    private fun createCardDrawable(bgColor: Int, cornerRadiusPx: Float, strokeColor: Int): GradientDrawable {
-        return GradientDrawable().apply {
-            setColor(bgColor)
-            cornerRadius = cornerRadiusPx
-            if (strokeColor != Color.TRANSPARENT) {
-                setStroke(dpToPx(1), strokeColor)
-            }
-        }
-    }
-
-    private fun dpToPx(dp: Int): Int {
-        return (dp * resources.displayMetrics.density).toInt()
-    }
 }
