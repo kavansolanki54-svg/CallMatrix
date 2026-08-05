@@ -121,6 +121,10 @@ namespace CallMatrix.BLL.Services
                 return ApiResponse<CallRecordingResponse>.Fail("Call record not found", 404);
             }
 
+            // Check if a recording already exists for this CallId
+            var existingRecording = await _unitOfWork.CallRecordings.Query()
+                .FirstOrDefaultAsync(r => r.CallId == request.CallId && r.IsActive);
+
             string? fileUrl = request.FileUrl;
             string? filePath = request.FilePath;
 
@@ -171,20 +175,43 @@ namespace CallMatrix.BLL.Services
                 fileUrl = $"/{relativeFileUrl}";
             }
 
-            var entity = _mapper.Map<CallRecording>(request);
-            entity.CompanyId = call.CompanyId;
-            entity.UploadStatus = "Completed";
-            entity.CreatedAt = DateTime.Now;
-            entity.CreatedBy = employeeId;
-            entity.IsActive = true;
-            entity.FilePath = filePath;
-            entity.FileUrl = fileUrl;
+            if (existingRecording != null)
+            {
+                // Update existing recording entry
+                existingRecording.FileName = request.FileName;
+                existingRecording.Duration = request.Duration;
+                existingRecording.FileSize = request.FileSize;
+                existingRecording.UploadStatus = "Completed";
+                existingRecording.UpdatedAt = DateTime.Now;
+                existingRecording.UpdatedBy = employeeId;
+                if (!string.IsNullOrEmpty(filePath)) existingRecording.FilePath = filePath;
+                if (!string.IsNullOrEmpty(fileUrl)) existingRecording.FileUrl = fileUrl;
+                if (request.RecordingDate.HasValue) existingRecording.RecordingDate = request.RecordingDate.Value;
 
-            await _unitOfWork.CallRecordings.AddAsync(entity);
-            await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork.CallRecordings.UpdateAsync(existingRecording);
+                await _unitOfWork.SaveChangesAsync();
 
-            var dto = _mapper.Map<CallRecordingResponse>(entity);
-            return ApiResponse<CallRecordingResponse>.Ok(dto, "Call recording saved successfully", 201);
+                var updateDto = _mapper.Map<CallRecordingResponse>(existingRecording);
+                return ApiResponse<CallRecordingResponse>.Ok(updateDto, "Call recording updated successfully", 200);
+            }
+            else
+            {
+                // Add new recording entry
+                var entity = _mapper.Map<CallRecording>(request);
+                entity.CompanyId = call.CompanyId;
+                entity.UploadStatus = "Completed";
+                entity.CreatedAt = DateTime.Now;
+                entity.CreatedBy = employeeId;
+                entity.IsActive = true;
+                entity.FilePath = filePath;
+                entity.FileUrl = fileUrl;
+
+                await _unitOfWork.CallRecordings.AddAsync(entity);
+                await _unitOfWork.SaveChangesAsync();
+
+                var dto = _mapper.Map<CallRecordingResponse>(entity);
+                return ApiResponse<CallRecordingResponse>.Ok(dto, "Call recording saved successfully", 201);
+            }
         }
 
         public async Task<ApiResponse<CallAnalyticsSummaryResponse>> GetAnalyticsSummaryAsync(int companyId, DateTime? startDate, DateTime? endDate, int? employeeId = null)
@@ -323,6 +350,13 @@ namespace CallMatrix.BLL.Services
                 .ThenInclude(c => c.Employee)
                 .AsNoTracking()
                 .Where(r => r.CompanyId == companyId && r.IsActive);
+
+            // Deduplicate: Only get the latest CallRecording record per CallId
+            query = query.Where(r => r.CallRecordingId == _unitOfWork.CallRecordings.Query()
+                .Where(sub => sub.CallId == r.CallId && sub.IsActive)
+                .OrderByDescending(sub => sub.CreatedAt)
+                .Select(sub => sub.CallRecordingId)
+                .FirstOrDefault());
 
             if (employeeId.HasValue)
             {
