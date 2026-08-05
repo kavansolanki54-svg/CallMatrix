@@ -158,7 +158,7 @@ namespace CallMatrix.BLL.Services
                 var extension = string.IsNullOrEmpty(fileExtension) ? ".mp3" : fileExtension;
                 if (!extension.StartsWith('.')) extension = "." + extension;
 
-                var fileName = $"{cleanPhone}{extension}";
+                var fileName = $"{cleanPhone}_{call.CallId}{extension}";
                 filePath = System.IO.Path.Combine(uploadsFolder, fileName);
 
                 using (var targetStream = new System.IO.FileStream(filePath, System.IO.FileMode.Create))
@@ -314,6 +314,63 @@ namespace CallMatrix.BLL.Services
             };
 
             return ApiResponse<DashboardSummaryResponse>.Ok(summary, "Dashboard summary calculated successfully");
+        }
+
+        public async Task<ApiResponse<PaginatedResponse<CallRecordingResponse>>> GetRecordingsAsync(PaginationRequest request, int companyId, int? employeeId = null)
+        {
+            var query = _unitOfWork.CallRecordings.Query()
+                .Include(r => r.Call)
+                .ThenInclude(c => c.Employee)
+                .AsNoTracking()
+                .Where(r => r.CompanyId == companyId && r.IsActive);
+
+            if (employeeId.HasValue)
+            {
+                query = query.Where(r => r.CreatedBy == employeeId.Value);
+            }
+
+            if (request.Date.HasValue)
+            {
+                var targetDate = request.Date.Value.Date;
+                query = query.Where(r => r.RecordingDate.HasValue ? r.RecordingDate.Value.Date == targetDate : r.CreatedAt.Date == targetDate);
+            }
+
+            if (!string.IsNullOrEmpty(request.Search))
+            {
+                query = query.Where(r => r.Call.PhoneNumber.Contains(request.Search) || (r.Call.ContactName != null && r.Call.ContactName.Contains(request.Search)));
+            }
+
+            query = query.OrderByDescending(r => r.CreatedAt);
+
+            int totalCount = await query.CountAsync();
+            var items = await query
+                .Skip((request.Page - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToListAsync();
+
+            var dtos = items.Select(r => new CallRecordingResponse
+            {
+                CallRecordingId = r.CallRecordingId,
+                CompanyId = r.CompanyId,
+                CallId = r.CallId,
+                FileName = r.FileName,
+                FilePath = r.FilePath,
+                FileUrl = r.FileUrl,
+                Duration = r.Duration ?? 0,
+                PhoneNumber = r.Call?.PhoneNumber ?? "Unknown",
+                ContactName = r.Call?.ContactName,
+                EmployeeName = r.Call?.Employee?.EmployeeName ?? $"Employee #{r.CreatedBy}",
+                EmployeeId = r.Call?.EmployeeId ?? r.CreatedBy ?? 0,
+                CallDateTime = r.Call?.CallDateTime ?? r.CreatedAt,
+                CallType = r.Call?.CallType ?? "Incoming",
+                FileSize = r.FileSize ?? 0,
+                UploadStatus = r.UploadStatus,
+                RecordingDate = r.RecordingDate,
+                CreatedAt = r.CreatedAt
+            }).ToList();
+
+            var paginated = new PaginatedResponse<CallRecordingResponse>(dtos, totalCount, request.Page, request.PageSize);
+            return ApiResponse<PaginatedResponse<CallRecordingResponse>>.Ok(paginated, "Recordings retrieved successfully");
         }
     }
 }

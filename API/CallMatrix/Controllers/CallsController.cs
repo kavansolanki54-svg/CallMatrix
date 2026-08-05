@@ -33,6 +33,20 @@ namespace CallMatrix.Controllers
             return StatusCode(result.StatusCode, result);
         }
 
+        [HttpGet("recordings")]
+        [RequirePermission("Call Recordings", "CanView")]
+        public async Task<IActionResult> GetRecordings([FromQuery] PaginationRequest request)
+        {
+            int employeeId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+            int companyId = int.Parse(User.FindFirst("CompanyId")!.Value);
+            var roleClaim = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+            bool isAdmin = roleClaim == "Company Admin" || roleClaim == "Super Admin" || User.FindFirst("Tenant")?.Value == "1";
+            int? employeeIdFilter = isAdmin ? null : (int?)employeeId;
+
+            var result = await _callService.GetRecordingsAsync(request, companyId, employeeIdFilter);
+            return StatusCode(result.StatusCode, result);
+        }
+
         [HttpPost]
         [RequirePermission("Call Logs", "CanAdd")]
         public async Task<IActionResult> CreateCallLog([FromBody] CreateCallLogRequest request)

@@ -44,14 +44,10 @@ export default function RecordingsPage() {
   const fetchRecordings = async () => {
     setLoading(true);
     try {
-      // Fetch a larger page size (100) since we are filtering by date,
-      // ensuring we load all records for the selected day in one view.
-      const res = await callService.getCalls(page, 100, search, selectedDate);
+      const res = await callService.getRecordings(page, 100, search, selectedDate);
       if (res?.success && res.data) {
         const items = res.data.items || res.data;
-        // Filter for items containing call recordings
-        const withRecordings = items.filter((c: any) => c.hasRecording && c.recordingUrl);
-        setCalls(withRecordings);
+        setCalls(items);
       } else {
         setCalls([]);
       }
@@ -201,6 +197,7 @@ export default function RecordingsPage() {
                     const isCurrent = activeCallId === rec.callId;
                     const isThisPlaying = isCurrent && isPlaying;
                     const cType = rec.callType || "Incoming";
+                    const recUrl = rec.fileUrl || rec.recordingUrl || "";
                     
                     const formatCallTime = (dateStr: string) => {
                       if (!dateStr) return "";
@@ -235,7 +232,7 @@ export default function RecordingsPage() {
 
                         <div className="flex items-center gap-1.5">
                           <a
-                            href={rec.recordingUrl.startsWith("http") ? rec.recordingUrl : `${baseUrl}${rec.recordingUrl}`}
+                            href={recUrl.startsWith("http") ? recUrl : `${baseUrl}${recUrl}`}
                             download
                             target="_blank"
                             rel="noopener noreferrer"
@@ -245,7 +242,7 @@ export default function RecordingsPage() {
                             <ArrowDownToLine className="w-3.5 h-3.5" />
                           </a>
                           <button
-                            onClick={() => handlePlayToggle(rec.recordingUrl, rec.callId)}
+                            onClick={() => handlePlayToggle(recUrl, rec.callId)}
                             className={`p-1 rounded-lg transition shadow-sm border ${
                               isThisPlaying
                                 ? "bg-indigo-600 border-indigo-600 text-white shadow-indigo-600/20"

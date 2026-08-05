@@ -204,6 +204,14 @@ export const callService = {
     const res = await apiClient.get(url);
     return res.data;
   },
+  getRecordings: async (page = 1, pageSize = 10, search = '', date = '') => {
+    let url = `/calls/recordings?page=${page}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`;
+    if (date) {
+      url += `&date=${encodeURIComponent(date)}`;
+    }
+    const res = await apiClient.get(url);
+    return res.data;
+  },
 };
 
 export const deviceService = {

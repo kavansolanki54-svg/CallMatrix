@@ -28,6 +28,12 @@ namespace CallMatrix.DTO.Response.Calls
         public string? FilePath { get; set; }
         public string? FileUrl { get; set; }
         public int Duration { get; set; }
+        public string PhoneNumber { get; set; } = string.Empty;
+        public string? ContactName { get; set; }
+        public string? EmployeeName { get; set; }
+        public int EmployeeId { get; set; }
+        public DateTime CallDateTime { get; set; }
+        public string CallType { get; set; } = string.Empty;
         public long FileSize { get; set; }
         public string UploadStatus { get; set; } = string.Empty;
         public DateTime? RecordingDate { get; set; }
