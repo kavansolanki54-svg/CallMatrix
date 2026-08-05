@@ -170,10 +170,13 @@ export const leadService = {
 };
 
 export const callService = {
-  getCalls: async (page = 1, pageSize = 10, search = "", date?: string) => {
+  getCalls: async (page = 1, pageSize = 10, search = "", date?: string, callType?: string) => {
     let url = `/calls?page=${page}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`;
     if (date) {
       url += `&date=${encodeURIComponent(date)}`;
+    }
+    if (callType && callType !== "All") {
+      url += `&Filters[CallType]=${encodeURIComponent(callType)}`;
     }
     const res = await apiClient.get(url);
     return res.data;
@@ -186,8 +189,19 @@ export const callService = {
     const res = await apiClient.get(url);
     return res.data;
   },
-  getDashboardSummary: async () => {
-    const res = await apiClient.get('/calls/dashboard');
+  getDashboardSummary: async (date?: string, employeeId?: string | number) => {
+    let url = "/calls/dashboard";
+    const params = [];
+    if (date) {
+      params.push(`date=${encodeURIComponent(date)}`);
+    }
+    if (employeeId && employeeId !== "All") {
+      params.push(`employeeId=${encodeURIComponent(employeeId.toString())}`);
+    }
+    if (params.length > 0) {
+      url += `?${params.join("&")}`;
+    }
+    const res = await apiClient.get(url);
     return res.data;
   },
 };

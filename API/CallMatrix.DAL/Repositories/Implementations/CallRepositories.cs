@@ -30,10 +30,20 @@ namespace CallMatrix.DAL.Repositories.Implementations
                 query = query.Where(c => c.CompanyId == companyId);
             }
 
+            if (filters != null && filters.TryGetValue("EmployeeId", out var employeeIdVal) && employeeIdVal is int employeeId)
+            {
+                query = query.Where(c => c.EmployeeId == employeeId);
+            }
+
             if (filters != null && filters.TryGetValue("Date", out var dateVal) && dateVal is DateTime dateFilter)
             {
                 var targetDate = dateFilter.Date;
                 query = query.Where(c => c.CallDateTime.Date == targetDate);
+            }
+
+            if (filters != null && filters.TryGetValue("CallType", out var callTypeVal) && callTypeVal is string callType && !string.IsNullOrEmpty(callType))
+            {
+                query = query.Where(c => c.CallType == callType);
             }
 
             if (!string.IsNullOrEmpty(search))

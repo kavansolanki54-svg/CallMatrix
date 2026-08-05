@@ -50,6 +50,7 @@ class HistoryState {
   final int currentPage;
   final String? filter;
   final String? searchQuery;
+  final DateTime? selectedDate;
 
   const HistoryState({
     this.calls = const [],
@@ -58,6 +59,7 @@ class HistoryState {
     this.currentPage = 1,
     this.filter,
     this.searchQuery,
+    this.selectedDate,
   });
 
   HistoryState copyWith({
@@ -67,6 +69,8 @@ class HistoryState {
     int? currentPage,
     String? filter,
     String? searchQuery,
+    DateTime? selectedDate,
+    bool clearDate = false,
   }) {
     return HistoryState(
       calls: calls ?? this.calls,
@@ -75,20 +79,28 @@ class HistoryState {
       currentPage: currentPage ?? this.currentPage,
       filter: filter,
       searchQuery: searchQuery,
+      selectedDate: clearDate ? null : (selectedDate ?? this.selectedDate),
     );
   }
 }
 
 class HistoryNotifier extends StateNotifier<HistoryState> {
-  HistoryNotifier() : super(const HistoryState()) {
-    loadCalls();
+  HistoryNotifier() : super(HistoryState(selectedDate: DateTime.now())) {
+    loadCalls(date: state.selectedDate);
   }
 
-  Future<void> loadCalls({String? filter, int page = 1, String? search}) async {
-    state = state.copyWith(isLoading: true, filter: filter, searchQuery: search);
+  Future<void> loadCalls({String? filter, int page = 1, String? search, DateTime? date, bool clearDate = false}) async {
+    final targetDate = clearDate ? null : (date ?? state.selectedDate);
+    state = state.copyWith(
+      isLoading: true,
+      filter: filter,
+      searchQuery: search,
+      selectedDate: targetDate,
+      clearDate: clearDate,
+    );
+    
     try {
       final dio = ApiClient.instance.dio;
-
       List<CallLogItem> allItems = [];
 
       try {
@@ -96,6 +108,7 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
           'page': page,
           'pageSize': 100,
           if (search != null && search.isNotEmpty) 'search': search,
+          if (targetDate != null) 'date': '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}',
         });
 
         if (res.data['success'] == true || res.data['isSuccess'] == true) {
@@ -107,7 +120,9 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
         }
       } catch (_) {
         try {
-          final res2 = await dio.get(ApiConstants.callLogsList);
+          final res2 = await dio.get(ApiConstants.callLogsList, queryParameters: {
+            if (targetDate != null) 'date': '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}',
+          });
           if (res2.data['success'] == true || res2.data['isSuccess'] == true) {
             final items = (res2.data['data'] as List? ?? [])
                 .map((e) => CallLogItem.fromJson(e as Map<String, dynamic>))
@@ -121,13 +136,15 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
           ? allItems
           : allItems.where((c) => c.callType.toLowerCase() == filter.toLowerCase()).toList();
 
-      state = HistoryState(
+      state = state.copyWith(
         calls: filtered,
         isLoading: false,
         totalCount: allItems.length,
         currentPage: page,
         filter: filter,
         searchQuery: search,
+        selectedDate: targetDate,
+        clearDate: clearDate,
       );
     } catch (_) {
       state = state.copyWith(isLoading: false);
@@ -140,6 +157,14 @@ class HistoryNotifier extends StateNotifier<HistoryState> {
 
   void search(String query) {
     loadCalls(filter: state.filter, search: query);
+  }
+
+  void setDate(DateTime? date) {
+    if (date == null) {
+      loadCalls(filter: state.filter, search: state.searchQuery, clearDate: true);
+    } else {
+      loadCalls(filter: state.filter, search: state.searchQuery, date: date);
+    }
   }
 }
 

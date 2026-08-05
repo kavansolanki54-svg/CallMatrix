@@ -20,10 +20,14 @@ namespace CallMatrix.BLL.Services
             _mapper = mapper;
         }
 
-        public async Task<ApiResponse<PaginatedResponse<CallLogResponse>>> GetCallsAsync(PaginationRequest request, int companyId)
+        public async Task<ApiResponse<PaginatedResponse<CallLogResponse>>> GetCallsAsync(PaginationRequest request, int companyId, int? employeeId = null)
         {
             var filters = request.Filters ?? new Dictionary<string, object>();
             filters["CompanyId"] = companyId;
+            if (employeeId.HasValue)
+            {
+                filters["EmployeeId"] = employeeId.Value;
+            }
             if (request.Date.HasValue)
             {
                 filters["Date"] = request.Date.Value;
@@ -183,7 +187,7 @@ namespace CallMatrix.BLL.Services
             return ApiResponse<CallRecordingResponse>.Ok(dto, "Call recording saved successfully", 201);
         }
 
-        public async Task<ApiResponse<CallAnalyticsSummaryResponse>> GetAnalyticsSummaryAsync(int companyId, DateTime? startDate, DateTime? endDate)
+        public async Task<ApiResponse<CallAnalyticsSummaryResponse>> GetAnalyticsSummaryAsync(int companyId, DateTime? startDate, DateTime? endDate, int? employeeId = null)
         {
             var calls = await _unitOfWork.Calls.GetCallsByCompanyIdAsync(companyId);
 
@@ -192,6 +196,9 @@ namespace CallMatrix.BLL.Services
 
             if (endDate.HasValue)
                 calls = calls.Where(c => c.CallDateTime <= endDate.Value);
+
+            if (employeeId.HasValue)
+                calls = calls.Where(c => c.EmployeeId == employeeId.Value);
 
             var callList = calls.ToList();
             int totalCount = callList.Count;
@@ -204,6 +211,11 @@ namespace CallMatrix.BLL.Services
             double avgDuration = totalCount > 0 ? (double)totalDuration / totalCount : 0;
 
             var recordings = await _unitOfWork.CallRecordings.GetRecordingsByCompanyIdAsync(companyId);
+            if (employeeId.HasValue)
+            {
+                var callIds = callList.Select(c => c.CallId).ToHashSet();
+                recordings = recordings.Where(r => callIds.Contains(r.CallId));
+            }
 
             var summary = new CallAnalyticsSummaryResponse
             {
@@ -219,22 +231,44 @@ namespace CallMatrix.BLL.Services
             return ApiResponse<CallAnalyticsSummaryResponse>.Ok(summary, "Call analytics summary generated successfully");
         }
 
-        public async Task<ApiResponse<DashboardSummaryResponse>> GetDashboardSummaryAsync(int companyId)
+        public async Task<ApiResponse<DashboardSummaryResponse>> GetDashboardSummaryAsync(int companyId, DateTime? date = null, int? employeeId = null)
         {
             // 1. Get calls for the company
             var calls = await _unitOfWork.Calls.GetCallsByCompanyIdAsync(companyId);
             var callList = calls.ToList();
-            int totalCalls = callList.Count;
 
             // 2. Get leads for the company
             var leads = await _unitOfWork.Leads.GetAllAsync();
             var leadList = leads.Where(l => l.CompanyId == companyId).ToList();
-            int totalLeads = leadList.Count;
 
             // 3. Get active devices count
             var devices = await _unitOfWork.Devices.GetAllAsync();
             var deviceList = devices.Where(d => d.CompanyId == companyId && d.IsActive).ToList();
+
+            // Apply Employee Filter if provided
+            if (employeeId.HasValue)
+            {
+                callList = callList.Where(c => c.EmployeeId == employeeId.Value).ToList();
+                leadList = leadList.Where(l => l.AssignedTo == employeeId.Value || l.CreatedBy == employeeId.Value).ToList();
+                deviceList = deviceList.Where(d => d.EmployeeId == employeeId.Value).ToList();
+            }
+
             int totalDevices = deviceList.Count;
+
+            // Keep copies of lists for weekly chart generation
+            var chartCallList = callList;
+            var chartLeadList = leadList;
+
+            // Apply Date Filter if provided
+            if (date.HasValue)
+            {
+                var targetDate = date.Value.Date;
+                callList = callList.Where(c => c.CallDateTime.Date == targetDate).ToList();
+                leadList = leadList.Where(l => l.CreatedAt.Date == targetDate).ToList();
+            }
+
+            int totalCalls = callList.Count;
+            int totalLeads = leadList.Count;
 
             // 4. Calculate average duration
             long totalDuration = callList.Sum(c => (long)(c.Duration ?? 0));
@@ -246,18 +280,18 @@ namespace CallMatrix.BLL.Services
             int missed = callList.Count(c => c.CallType.Equals("Missed", StringComparison.OrdinalIgnoreCase));
             int answered = incoming + outgoing;
 
-            // 6. Weekly series (last 7 days ending on the date of the latest call)
-            var endDate = callList.Any() ? callList.Max(c => c.CallDateTime).Date : DateTime.Today;
+            // 6. Weekly series (last 7 days ending on the filtered date or latest call date)
+            var endDate = date ?? (chartCallList.Any() ? chartCallList.Max(c => c.CallDateTime).Date : DateTime.Today);
             var last7Days = Enumerable.Range(0, 7)
                 .Select(i => endDate.AddDays(-6 + i))
                 .ToList();
 
             var weeklyCallVolume = last7Days
-                .Select(d => callList.Count(c => c.CallDateTime.Date == d.Date))
+                .Select(d => chartCallList.Count(c => c.CallDateTime.Date == d.Date))
                 .ToList();
 
             var weeklyLeadConversions = last7Days
-                .Select(d => leadList.Count(l => l.CreatedAt.Date == d.Date))
+                .Select(d => chartLeadList.Count(l => l.CreatedAt.Date == d.Date))
                 .ToList();
 
             var weeklyLabels = last7Days.Select(d => d.ToString("ddd")).ToList();

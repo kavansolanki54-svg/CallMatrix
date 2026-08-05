@@ -1,8 +1,9 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { callService } from "@/lib/services";
-import { Phone, Users, ShieldAlert, ArrowUpRight, Clock, Activity } from "lucide-react";
+import { callService, employeeService } from "@/lib/services";
+import { getCompanyIdFromToken } from "@/lib/auth";
+import { Phone, Users, ShieldAlert, ArrowUpRight, Clock, Activity, Calendar } from "lucide-react";
 import { ApexOptions } from "apexcharts";
 
 // Dynamically import ApexCharts for Next.js SSR compatibility
@@ -11,11 +12,63 @@ const ReactApexChart = dynamic(() => import("react-apexcharts"), { ssr: false })
 export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = (today.getMonth() + 1).toString().padStart(2, "0");
+    const d = today.getDate().toString().padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  });
+  const [selectedEmployee, setSelectedEmployee] = useState<string>("All");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [employees, setEmployees] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userStr = localStorage.getItem("user");
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(userStr);
+          const role = userObj.roleName || "";
+          setIsAdmin(role === "Company Admin" || role === "Super Admin" || userObj.tenant);
+        } catch (e) {}
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const cid = getCompanyIdFromToken();
+        const res = await employeeService.getEmployees(1, 100, "", cid || undefined);
+        let list: any[] = [];
+        if (res?.success) {
+          if (res.data && Array.isArray(res.data.items)) {
+            list = res.data.items;
+          } else if (Array.isArray(res.data)) {
+            list = res.data;
+          }
+        } else if (Array.isArray(res)) {
+          list = res;
+        }
+        setEmployees(list.filter(e => !e.tenant));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    if (isAdmin) {
+      fetchEmployees();
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     const loadDashboardData = async () => {
+      setLoading(true);
       try {
-        const res = await callService.getDashboardSummary().catch(() => null);
+        const res = await callService.getDashboardSummary(
+          selectedDate || undefined, 
+          selectedEmployee !== "All" ? selectedEmployee : undefined
+        ).catch(() => null);
         if (res?.success) {
           setDashboardData(res.data);
         } else {
@@ -30,7 +83,7 @@ export default function DashboardPage() {
     };
 
     loadDashboardData();
-  }, []);
+  }, [selectedDate, selectedEmployee]);
 
   // ApexCharts Configuration
   const lineChartOptions: ApexOptions = {
@@ -105,6 +158,58 @@ export default function DashboardPage() {
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md rounded-xl text-xs font-semibold border border-white/20">
           <span>Live Telemetry Running</span>
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        </div>
+      </div>
+
+      {/* Filters Control Panel */}
+      <div className="p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Employee Wise Filter (Admins Only) */}
+          {isAdmin && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider">
+                Agent:
+              </span>
+              <select
+                value={selectedEmployee}
+                onChange={(e) => setSelectedEmployee(e.target.value)}
+                className="px-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
+              >
+                <option value="All">All Agents</option>
+                {employees.map((emp) => (
+                  <option key={emp.employeeId} value={emp.employeeId}>
+                    {emp.employeeName || `${emp.firstName} ${emp.lastName}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Date Picker */}
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-brand-500" /> Date:
+            </span>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              onClick={(e) => {
+                try {
+                  e.currentTarget.showPicker();
+                } catch (err) {}
+              }}
+              className="px-3 py-1.5 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
+            />
+          </label>
+          {selectedDate && (
+            <button
+              onClick={() => setSelectedDate("")}
+              className="px-2.5 py-1.5 text-xs font-semibold text-red-500 hover:text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/20 rounded-lg transition"
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 

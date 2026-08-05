@@ -129,7 +129,7 @@ export default function RecordingsPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
+        <label className="flex items-center gap-2 cursor-pointer select-none">
           <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
             <Calendar className="w-3.5 h-3.5 text-brand-500" /> Date:
           </span>
@@ -140,9 +140,14 @@ export default function RecordingsPage() {
               setSelectedDate(e.target.value);
               setPage(1);
             }}
-            className="px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
+            onClick={(e) => {
+              try {
+                e.currentTarget.showPicker();
+              } catch (err) {}
+            }}
+            className="px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
           />
-        </div>
+        </label>
       </div>
 
       {/* Grid List */}

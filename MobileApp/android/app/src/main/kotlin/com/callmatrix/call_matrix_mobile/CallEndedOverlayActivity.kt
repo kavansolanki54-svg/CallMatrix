@@ -151,7 +151,10 @@ class CallEndedOverlayActivity : Activity() {
             textSize = 20f
             typeface = Typeface.DEFAULT_BOLD
             setPadding(dpToPx(8), dpToPx(4), dpToPx(8), dpToPx(4))
-            setOnClickListener { finish() }
+            setOnClickListener { 
+                triggerMainActivitySync()
+                finish() 
+            }
         }
         val closeParams = RelativeLayout.LayoutParams(
             RelativeLayout.LayoutParams.WRAP_CONTENT,
@@ -469,7 +472,22 @@ class CallEndedOverlayActivity : Activity() {
     private fun saveNoteAndClose(actionType: String) {
         val noteText = noteEditText?.text?.toString()?.trim() ?: ""
         Toast.makeText(this, "Note Saved ($actionType)", Toast.LENGTH_SHORT).show()
+        triggerMainActivitySync()
         finish()
+    }
+
+    private fun triggerMainActivitySync() {
+        try {
+            val phoneNumber = intent.getStringExtra("phone_number") ?: ""
+            val launchIntent = Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra("call_ended", true)
+                putExtra("phone_number", phoneNumber)
+            }
+            startActivity(launchIntent)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     private fun createCardDrawable(bgColor: Int, cornerRadiusPx: Float, strokeColor: Int): GradientDrawable {

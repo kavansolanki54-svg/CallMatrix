@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dashboard_screen.dart';
 import 'contacts_screen.dart';
-import 'dialer_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
 import '../../services/native_call_sync_service.dart';
@@ -24,6 +23,7 @@ class _MainContainerState extends ConsumerState<MainContainer> with WidgetsBindi
     WidgetsBinding.instance.addObserver(this);
     // Start automated background sync
     NativeCallSyncService.startAutoSync();
+    NativeCallSyncService.checkCallEndedAndSync();
   }
 
   @override
@@ -52,7 +52,6 @@ class _MainContainerState extends ConsumerState<MainContainer> with WidgetsBindi
     final List<Widget> screens = [
       DashboardScreen(onLogout: widget.onLogout),
       const ContactsScreen(),
-      const DialerScreen(),
       const HistoryScreen(),
       ProfileScreen(onLogout: widget.onLogout),
     ];
@@ -71,10 +70,6 @@ class _MainContainerState extends ConsumerState<MainContainer> with WidgetsBindi
           BottomNavigationBarItem(
             icon: Icon(Icons.contacts_rounded),
             label: 'Contacts',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dialpad_rounded),
-            label: 'Dialer',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.history_rounded),
