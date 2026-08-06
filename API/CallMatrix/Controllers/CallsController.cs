@@ -79,10 +79,24 @@ namespace CallMatrix.Controllers
             int companyId = int.Parse(User.FindFirst("CompanyId")!.Value);
             request.CompanyId = companyId;
 
+            System.Console.WriteLine($"[CallsController] UploadCallRecording received: employeeId={employeeId}, companyId={companyId}, CallId={request.CallId}, fileName={request.FileName}, fileSize={request.FileSize}, filePresent={file != null}, fileLength={file?.Length ?? 0}");
+            if (file == null)
+            {
+                System.Console.Error.WriteLine($"[CallsController] UploadCallRecording warning: no file attachment received in multipart/form-data request for CallId={request.CallId}");
+            }
+
             System.IO.Stream? fileStream = file?.OpenReadStream();
             string? fileExtension = file != null ? System.IO.Path.GetExtension(file.FileName) : null;
 
             var result = await _callService.SaveCallRecordingAsync(request, fileStream, fileExtension, employeeId);
+            if (result.StatusCode >= 400)
+            {
+                System.Console.Error.WriteLine($"[CallsController] UploadCallRecording response status is error: {result.StatusCode} - {result.Message}");
+            }
+            else
+            {
+                System.Console.WriteLine($"[CallsController] UploadCallRecording response status is success: {result.StatusCode} - {result.Message}");
+            }
             return StatusCode(result.StatusCode, result);
         }
 

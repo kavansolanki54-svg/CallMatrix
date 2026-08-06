@@ -41,7 +41,7 @@ namespace CallMatrix.Extensions
             services.AddScoped<IOrganizationService, OrganizationService>();
 
             // 4. AutoMapper Registration
-            services.AddAutoMapper(typeof(AutoMapperProfiles));
+            services.AddAutoMapper(cfg => {}, typeof(AutoMapperProfiles));
 
             // 5. Cross-cutting Helpers
             services.AddHttpContextAccessor();

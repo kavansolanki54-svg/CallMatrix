@@ -13,6 +13,8 @@ namespace CallMatrix.BLL.Services
     {
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, System.Threading.SemaphoreSlim> _uploadLocks = 
+            new System.Collections.Concurrent.ConcurrentDictionary<int, System.Threading.SemaphoreSlim>();
 
         public CallService(IUnitOfWork unitOfWork, IMapper mapper)
         {
@@ -115,102 +117,141 @@ namespace CallMatrix.BLL.Services
 
         public async Task<ApiResponse<CallRecordingResponse>> SaveCallRecordingAsync(UploadCallRecordingRequest request, System.IO.Stream? fileStream, string? fileExtension, int employeeId)
         {
-            var call = await _unitOfWork.Calls.GetByIdAsync(request.CallId);
-            if (call == null || !call.IsActive)
+            var myLock = _uploadLocks.GetOrAdd(request.CallId, _ => new System.Threading.SemaphoreSlim(1, 1));
+            await myLock.WaitAsync();
+            try
             {
-                return ApiResponse<CallRecordingResponse>.Fail("Call record not found", 404);
-            }
+                System.Console.WriteLine($"[CallService] SaveCallRecordingAsync starting: CallId={request.CallId}, employeeId={employeeId}, fileName={request.FileName}, duration={request.Duration}, fileSize={request.FileSize}");
 
-            // Check if a recording already exists for this CallId
-            var existingRecording = await _unitOfWork.CallRecordings.Query()
-                .FirstOrDefaultAsync(r => r.CallId == request.CallId && r.IsActive);
-
-            string? fileUrl = request.FileUrl;
-            string? filePath = request.FilePath;
-
-            if (fileStream != null && fileStream.Length > 0)
-            {
-                // Extract date components
-                var targetDate = request.RecordingDate ?? call.CallDateTime;
-                var year = targetDate.ToString("yyyy");
-                var month = targetDate.ToString("MM");
-                var day = targetDate.ToString("dd");
-
-                // Clean phone number for safety in folder/file naming
-                var cleanPhone = string.IsNullOrEmpty(call.PhoneNumber) ? "Unknown" : call.PhoneNumber.Replace("+", "").Replace(" ", "").Replace("-", "");
-
-                // Build relative directory structure: recordings/Company_X/Employee_Y/Year/Month/Day
-                var relativeDir = System.IO.Path.Combine("recordings", $"Company_{call.CompanyId}", $"Employee_{employeeId}", year, month, day);
-                
-                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                string uploadsFolder;
-                if (baseDir.Contains("bin") && (baseDir.Contains("Debug") || baseDir.Contains("Release")))
+                var call = await _unitOfWork.Calls.GetByIdAsync(request.CallId);
+                if (call == null || !call.IsActive)
                 {
-                    var projectRoot = System.IO.Directory.GetParent(baseDir)?.Parent?.Parent?.FullName ?? baseDir;
-                    uploadsFolder = System.IO.Path.Combine(projectRoot, "wwwroot", relativeDir);
+                    System.Console.Error.WriteLine($"[CallService] SaveCallRecordingAsync error: Call record not found or inactive for CallId={request.CallId}");
+                    return ApiResponse<CallRecordingResponse>.Fail("Call record not found", 404);
+                }
+
+                // Check if a recording already exists for this CallId
+                var existingRecording = await _unitOfWork.CallRecordings.Query()
+                    .FirstOrDefaultAsync(r => r.CallId == request.CallId && r.IsActive);
+
+                string? fileUrl = request.FileUrl;
+                string? filePath = request.FilePath;
+
+                if (fileStream != null && fileStream.Length > 0)
+                {
+                    try
+                    {
+                        // Extract date components
+                        var targetDate = request.RecordingDate ?? call.CallDateTime;
+                        var year = targetDate.ToString("yyyy");
+                        var month = targetDate.ToString("MM");
+                        var day = targetDate.ToString("dd");
+
+                        // Clean phone number for safety in folder/file naming
+                        var cleanPhone = string.IsNullOrEmpty(call.PhoneNumber) ? "Unknown" : call.PhoneNumber.Replace("+", "").Replace(" ", "").Replace("-", "");
+
+                        // Build relative directory structure: recordings/Company_X/Employee_Y/Year/Month/Day
+                        var relativeDir = System.IO.Path.Combine("recordings", $"Company_{call.CompanyId}", $"Employee_{employeeId}", year, month, day);
+                        
+                        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                        string uploadsFolder;
+                        if (baseDir.Contains("bin") && (baseDir.Contains("Debug") || baseDir.Contains("Release")))
+                        {
+                            var projectRoot = System.IO.Directory.GetParent(baseDir)?.Parent?.Parent?.FullName ?? baseDir;
+                            uploadsFolder = System.IO.Path.Combine(projectRoot, "wwwroot", relativeDir);
+                        }
+                        else
+                        {
+                            uploadsFolder = System.IO.Path.Combine(baseDir, relativeDir);
+                        }
+
+                        if (!System.IO.Directory.Exists(uploadsFolder))
+                        {
+                            System.Console.WriteLine($"[CallService] SaveCallRecordingAsync creating folder: {uploadsFolder}");
+                            System.IO.Directory.CreateDirectory(uploadsFolder);
+                        }
+
+                        var extension = string.IsNullOrEmpty(fileExtension) ? ".mp3" : fileExtension;
+                        if (!extension.StartsWith('.')) extension = "." + extension;
+
+                        var fileName = $"{cleanPhone}_{call.CallId}{extension}";
+                        filePath = System.IO.Path.Combine(uploadsFolder, fileName);
+
+                        System.Console.WriteLine($"[CallService] SaveCallRecordingAsync saving file to: {filePath}");
+                        using (var targetStream = new System.IO.FileStream(filePath, System.IO.FileMode.Create))
+                        {
+                            await fileStream.CopyToAsync(targetStream);
+                        }
+
+                        // Construct static file URL
+                        var relativeFileUrl = System.IO.Path.Combine(relativeDir, fileName).Replace("\\", "/");
+                        fileUrl = $"/{relativeFileUrl}";
+                        System.Console.WriteLine($"[CallService] SaveCallRecordingAsync saved file successfully: URL={fileUrl}");
+                    }
+                    catch (System.Exception ex)
+                    {
+                        System.Console.Error.WriteLine($"[CallService] SaveCallRecordingAsync filesystem exception for CallId={request.CallId}: {ex.Message}\n{ex.StackTrace}");
+                        throw;
+                    }
                 }
                 else
                 {
-                    uploadsFolder = System.IO.Path.Combine(baseDir, relativeDir);
+                    System.Console.Error.WriteLine($"[CallService] SaveCallRecordingAsync warning: fileStream is null or empty for CallId={request.CallId}");
                 }
 
-                if (!System.IO.Directory.Exists(uploadsFolder))
+                try
                 {
-                    System.IO.Directory.CreateDirectory(uploadsFolder);
+                    if (existingRecording != null)
+                    {
+                        System.Console.WriteLine($"[CallService] SaveCallRecordingAsync: updating existing recording entry with ID={existingRecording.CallRecordingId} for CallId={request.CallId}");
+                        // Update existing recording entry
+                        existingRecording.FileName = request.FileName;
+                        existingRecording.Duration = request.Duration;
+                        existingRecording.FileSize = request.FileSize;
+                        existingRecording.UploadStatus = "Completed";
+                        existingRecording.UpdatedAt = DateTime.Now;
+                        existingRecording.UpdatedBy = employeeId;
+                        if (!string.IsNullOrEmpty(filePath)) existingRecording.FilePath = filePath;
+                        if (!string.IsNullOrEmpty(fileUrl)) existingRecording.FileUrl = fileUrl;
+                        if (request.RecordingDate.HasValue) existingRecording.RecordingDate = request.RecordingDate.Value;
+
+                        await _unitOfWork.CallRecordings.UpdateAsync(existingRecording);
+                        await _unitOfWork.SaveChangesAsync();
+
+                        System.Console.WriteLine($"[CallService] SaveCallRecordingAsync database update succeeded for CallId={request.CallId}");
+                        var updateDto = _mapper.Map<CallRecordingResponse>(existingRecording);
+                        return ApiResponse<CallRecordingResponse>.Ok(updateDto, "Call recording updated successfully", 200);
+                    }
+                    else
+                    {
+                        System.Console.WriteLine($"[CallService] SaveCallRecordingAsync: adding new recording entry for CallId={request.CallId}");
+                        // Add new recording entry
+                        var entity = _mapper.Map<CallRecording>(request);
+                        entity.CompanyId = call.CompanyId;
+                        entity.UploadStatus = "Completed";
+                        entity.CreatedAt = DateTime.Now;
+                        entity.CreatedBy = employeeId;
+                        entity.IsActive = true;
+                        entity.FilePath = filePath;
+                        entity.FileUrl = fileUrl;
+
+                        await _unitOfWork.CallRecordings.AddAsync(entity);
+                        await _unitOfWork.SaveChangesAsync();
+
+                        System.Console.WriteLine($"[CallService] SaveCallRecordingAsync database insert succeeded for CallId={request.CallId}");
+                        var dto = _mapper.Map<CallRecordingResponse>(entity);
+                        return ApiResponse<CallRecordingResponse>.Ok(dto, "Call recording saved successfully", 201);
+                    }
                 }
-
-                var extension = string.IsNullOrEmpty(fileExtension) ? ".mp3" : fileExtension;
-                if (!extension.StartsWith('.')) extension = "." + extension;
-
-                var fileName = $"{cleanPhone}_{call.CallId}{extension}";
-                filePath = System.IO.Path.Combine(uploadsFolder, fileName);
-
-                using (var targetStream = new System.IO.FileStream(filePath, System.IO.FileMode.Create))
+                catch (System.Exception ex)
                 {
-                    await fileStream.CopyToAsync(targetStream);
+                    System.Console.Error.WriteLine($"[CallService] SaveCallRecordingAsync database transaction exception for CallId={request.CallId}: {ex.Message}\n{ex.StackTrace}");
+                    throw;
                 }
-
-                // Construct static file URL
-                var relativeFileUrl = System.IO.Path.Combine(relativeDir, fileName).Replace("\\", "/");
-                fileUrl = $"/{relativeFileUrl}";
             }
-
-            if (existingRecording != null)
+            finally
             {
-                // Update existing recording entry
-                existingRecording.FileName = request.FileName;
-                existingRecording.Duration = request.Duration;
-                existingRecording.FileSize = request.FileSize;
-                existingRecording.UploadStatus = "Completed";
-                existingRecording.UpdatedAt = DateTime.Now;
-                existingRecording.UpdatedBy = employeeId;
-                if (!string.IsNullOrEmpty(filePath)) existingRecording.FilePath = filePath;
-                if (!string.IsNullOrEmpty(fileUrl)) existingRecording.FileUrl = fileUrl;
-                if (request.RecordingDate.HasValue) existingRecording.RecordingDate = request.RecordingDate.Value;
-
-                await _unitOfWork.CallRecordings.UpdateAsync(existingRecording);
-                await _unitOfWork.SaveChangesAsync();
-
-                var updateDto = _mapper.Map<CallRecordingResponse>(existingRecording);
-                return ApiResponse<CallRecordingResponse>.Ok(updateDto, "Call recording updated successfully", 200);
-            }
-            else
-            {
-                // Add new recording entry
-                var entity = _mapper.Map<CallRecording>(request);
-                entity.CompanyId = call.CompanyId;
-                entity.UploadStatus = "Completed";
-                entity.CreatedAt = DateTime.Now;
-                entity.CreatedBy = employeeId;
-                entity.IsActive = true;
-                entity.FilePath = filePath;
-                entity.FileUrl = fileUrl;
-
-                await _unitOfWork.CallRecordings.AddAsync(entity);
-                await _unitOfWork.SaveChangesAsync();
-
-                var dto = _mapper.Map<CallRecordingResponse>(entity);
-                return ApiResponse<CallRecordingResponse>.Ok(dto, "Call recording saved successfully", 201);
+                myLock.Release();
             }
         }
 

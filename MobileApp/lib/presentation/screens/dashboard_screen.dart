@@ -4,6 +4,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/home_provider.dart';
 import '../../core/utils/formatters.dart';
 import '../../services/permission_guard_service.dart';
+import '../../services/native_call_sync_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   final VoidCallback onLogout;
@@ -26,21 +28,58 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 
   Future<void> _triggerSync() async {
+    if (_isSyncing) return;
+
+    // Ensure notification permission is granted (required for progress notification on Android 13+)
+    final notifStatus = await Permission.notification.status;
+    if (!notifStatus.isGranted) {
+      final result = await Permission.notification.request();
+      if (!result.isGranted && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Row(
+              children: [
+                Icon(Icons.notifications_off, color: Colors.white, size: 18),
+                SizedBox(width: 8),
+                Expanded(child: Text('Notification permission required to show sync progress')),
+              ],
+            ),
+            backgroundColor: Colors.orange.shade700,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            action: SnackBarAction(
+              label: 'Settings',
+              textColor: Colors.white,
+              onPressed: () => openAppSettings(),
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
     setState(() => _isSyncing = true);
-    final count = await ref.read(homeProvider.notifier).syncAndReload();
+
+    // Launch the foreground service (shows notification with progress bar)
+    await NativeCallSyncService.startBackgroundSyncService();
+
+    // Reload dashboard data after a short delay to let sync start
+    await Future.delayed(const Duration(seconds: 2));
+    await ref.read(homeProvider.notifier).loadData();
+
     setState(() => _isSyncing = false);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Row(
+          content: const Row(
             children: [
-              const Icon(Icons.check_circle, color: Colors.white, size: 18),
-              const SizedBox(width: 8),
-              Text('$count call logs successfully synchronized'),
+              Icon(Icons.sync_rounded, color: Colors.white, size: 18),
+              SizedBox(width: 8),
+              Expanded(child: Text('Sync started — check notification for progress')),
             ],
           ),
-          backgroundColor: Colors.green,
+          backgroundColor: const Color(0xFF465FFF),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
@@ -87,6 +126,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         backgroundColor: const Color(0xFF1D2939),
         foregroundColor: Colors.white,
         actions: [
+          _isSyncing
+            ? const Padding(
+                padding: EdgeInsets.all(12),
+                child: SizedBox(
+                  width: 22, height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Color(0xFF465FFF),
+                  ),
+                ),
+              )
+            : IconButton(
+                icon: const Icon(Icons.sync_rounded),
+                tooltip: 'Sync Now',
+                onPressed: _triggerSync,
+              ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             onPressed: widget.onLogout,

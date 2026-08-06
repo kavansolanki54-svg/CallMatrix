@@ -31,7 +31,7 @@ export default function CallsPage() {
 
   const formatTime = (dateStr: string) => {
     if (!dateStr) return "";
-    const d = new Date(dateStr);
+    const d = new Date(dateStr.endsWith("Z") ? dateStr : dateStr + "Z");
     if (isNaN(d.getTime())) return dateStr;
     const hr = d.getHours().toString().padStart(2, "0");
     const min = d.getMinutes().toString().padStart(2, "0");
@@ -42,7 +42,11 @@ export default function CallsPage() {
     const groups: Record<string, any[]> = {};
     callList.forEach((call) => {
       if (!call.callDateTime) return;
-      const dateKey = call.callDateTime.split("T")[0];
+      const d = new Date(call.callDateTime.endsWith("Z") ? call.callDateTime : call.callDateTime + "Z");
+      const y = d.getFullYear();
+      const m = (d.getMonth() + 1).toString().padStart(2, "0");
+      const day = d.getDate().toString().padStart(2, "0");
+      const dateKey = `${y}-${m}-${day}`;
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }

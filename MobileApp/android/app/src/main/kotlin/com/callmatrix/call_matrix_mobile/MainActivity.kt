@@ -79,6 +79,10 @@ class MainActivity: FlutterActivity() {
                     }
                     result.success(mapOf("callEnded" to callEnded, "phoneNumber" to phoneNumber))
                 }
+                "startSyncService" -> {
+                    CallSyncForegroundService.start(this)
+                    result.success(true)
+                }
                 else -> {
                     result.notImplemented()
                 }

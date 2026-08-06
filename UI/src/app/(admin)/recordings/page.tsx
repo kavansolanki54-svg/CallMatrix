@@ -12,8 +12,9 @@ export default function RecordingsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [activeRecordingUrl, setActiveRecordingUrl] = useState<string | null>(null);
-  const [activeCallId, setActiveCallId] = useState<number | null>(null);
+  const [activeRecordingId, setActiveRecordingId] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement>(null);
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const today = new Date();
     const y = today.getFullYear();
@@ -31,7 +32,7 @@ export default function RecordingsPage() {
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "";
-    const d = new Date(dateStr);
+    const d = new Date(dateStr.endsWith("Z") ? dateStr : dateStr + "Z");
     if (isNaN(d.getTime())) return dateStr;
     const y = d.getFullYear();
     const m = (d.getMonth() + 1).toString().padStart(2, "0");
@@ -63,14 +64,19 @@ export default function RecordingsPage() {
     fetchRecordings();
   }, [page, search, selectedDate]);
 
-  const handlePlayToggle = (url: string, callId: number) => {
+  const handlePlayToggle = (url: string, recordingId: number) => {
     const fullUrl = url.startsWith("http") ? url : `${baseUrl}${url}`;
     
-    if (activeCallId === callId) {
+    if (activeRecordingId === recordingId) {
+      if (isPlaying) {
+        audioRef.current?.pause();
+      } else {
+        audioRef.current?.play();
+      }
       setIsPlaying(!isPlaying);
     } else {
       setActiveRecordingUrl(fullUrl);
-      setActiveCallId(callId);
+      setActiveRecordingId(recordingId);
       setIsPlaying(true);
     }
   };
@@ -194,21 +200,21 @@ export default function RecordingsPage() {
 
                 <div className="border-t border-gray-50 dark:border-gray-800/80 pt-3 mt-4 space-y-2">
                   {group.recordings.map((rec) => {
-                    const isCurrent = activeCallId === rec.callId;
+                    const isCurrent = activeRecordingId === rec.callRecordingId;
                     const isThisPlaying = isCurrent && isPlaying;
                     const cType = rec.callType || "Incoming";
                     const recUrl = rec.fileUrl || rec.recordingUrl || "";
                     
                     const formatCallTime = (dateStr: string) => {
                       if (!dateStr) return "";
-                      const d = new Date(dateStr);
+                      const d = new Date(dateStr.endsWith("Z") ? dateStr : dateStr + "Z");
                       if (isNaN(d.getTime())) return dateStr;
                       return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
                     };
 
                     return (
                       <div 
-                        key={rec.callId}
+                        key={rec.callRecordingId}
                         className={`p-2 rounded-xl border flex items-center justify-between gap-3 transition ${
                           isCurrent 
                             ? "bg-brand-50/30 dark:bg-brand-950/10 border-brand-500/30" 
@@ -242,7 +248,7 @@ export default function RecordingsPage() {
                             <ArrowDownToLine className="w-3.5 h-3.5" />
                           </a>
                           <button
-                            onClick={() => handlePlayToggle(recUrl, rec.callId)}
+                            onClick={() => handlePlayToggle(recUrl, rec.callRecordingId)}
                             className={`p-1 rounded-lg transition shadow-sm border ${
                               isThisPlaying
                                 ? "bg-indigo-600 border-indigo-600 text-white shadow-indigo-600/20"
@@ -301,7 +307,7 @@ export default function RecordingsPage() {
             <button 
               onClick={() => {
                 setActiveRecordingUrl(null);
-                setActiveCallId(null);
+                setActiveRecordingId(null);
                 setIsPlaying(false);
               }}
               className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition"
@@ -310,6 +316,7 @@ export default function RecordingsPage() {
             </button>
           </div>
           <audio 
+            ref={audioRef}
             key={activeRecordingUrl}
             src={activeRecordingUrl} 
             controls 

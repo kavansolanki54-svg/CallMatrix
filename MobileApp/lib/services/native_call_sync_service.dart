@@ -15,9 +15,9 @@ class NativeCallSyncService {
   /// Start automatic background sync timer (every 15 minutes) inside the main process
   static void startAutoSync() {
     _syncTimer?.cancel();
-    runSync();
+    startBackgroundSyncService();
     _syncTimer = Timer.periodic(const Duration(minutes: 15), (_) {
-      runSync();
+      startBackgroundSyncService();
     });
   }
 
@@ -35,6 +35,17 @@ class NativeCallSyncService {
 
   static void stopAutoSync() {
     _syncTimer?.cancel();
+  }
+
+  /// Launch the Android Foreground Service that syncs call recordings
+  /// with a persistent notification showing real upload progress.
+  static Future<void> startBackgroundSyncService() async {
+    try {
+      await _channel.invokeMethod('startSyncService');
+    } catch (e) {
+      // Fallback to in-process sync if service launch fails
+      runSync();
+    }
   }
 
   /// Synchronize system call logs & local recording paths with backend API
