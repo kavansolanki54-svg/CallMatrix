@@ -71,14 +71,31 @@ class CallSyncForegroundService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    private fun logToFile(message: String, t: Throwable? = null) {
+        try {
+            val dir = getExternalFilesDir(null)
+            if (dir != null) {
+                val file = File(dir, "callmatrix_sync_log.txt")
+                val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
+                val logLine = "$timestamp: $message\n" + (t?.let { Log.getStackTraceString(it) } ?: "") + "\n"
+                file.appendText(logLine)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to write log to file", e)
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
+        logToFile("Service onCreate() called")
         createNotificationChannel()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        logToFile("Service onStartCommand() called, isRunning=$isRunning")
         if (isRunning) {
             Log.d(TAG, "Already running — ignoring duplicate onStartCommand")
+            logToFile("Service already running — ignoring duplicate start")
             stopSelf()
             return START_NOT_STICKY
         }
@@ -92,14 +109,40 @@ class CallSyncForegroundService : Service() {
             maxProgress = 0,
             ongoing = true
         )
-        startForeground(NOTIFICATION_ID, initialNotification)
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                logToFile("Calling startForeground with FOREGROUND_SERVICE_TYPE_DATA_SYNC")
+                startForeground(
+                    NOTIFICATION_ID, 
+                    initialNotification, 
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+                )
+            } else {
+                logToFile("Calling startForeground (Legacy)")
+                startForeground(NOTIFICATION_ID, initialNotification)
+            }
+            logToFile("startForeground() executed successfully")
+        } catch (se: SecurityException) {
+            logToFile("SecurityException during startForeground()", se)
+            isRunning = false
+            stopSelf()
+            return START_NOT_STICKY
+        } catch (e: Throwable) {
+            logToFile("Unexpected error during startForeground()", e)
+            isRunning = false
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
         // Run the entire pipeline on a background thread
         Thread {
             try {
+                logToFile("Background thread started, starting sync pipeline")
                 runSyncPipeline()
-            } catch (e: Exception) {
+                logToFile("Sync pipeline finished executing")
+            } catch (e: Throwable) {
                 Log.e(TAG, "Sync pipeline crashed", e)
+                logToFile("Sync pipeline crashed with exception", e)
                 updateNotification(
                     title = "Sync Failed",
                     text = e.message ?: "Unknown error",
@@ -110,10 +153,17 @@ class CallSyncForegroundService : Service() {
             } finally {
                 isRunning = false
                 stopSelf()
+                logToFile("Service background thread stopped, called stopSelf()")
             }
         }.start()
 
         return START_NOT_STICKY
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        logToFile("Service onDestroy() called")
+        isRunning = false
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -155,7 +205,7 @@ class CallSyncForegroundService : Service() {
         )
 
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.stat_sys_upload)
+            .setSmallIcon(com.callmatrix.call_matrix_mobile.R.mipmap.ic_launcher)
             .setContentTitle(title)
             .setContentText(text)
             .setContentIntent(pendingIntent)
@@ -199,22 +249,35 @@ class CallSyncForegroundService : Service() {
         val prefs = getSharedPreferences("FlutterSharedPreferences", MODE_PRIVATE)
         val token = prefs.getString("flutter.token", "") ?: ""
         val baseUrl = prefs.getString("flutter.baseUrl", "") ?: ""
-        val userDeviceId = prefs.getInt("flutter.user_device_id", 0)
+        val userDeviceId = try {
+            prefs.getLong("flutter.user_device_id", 0L).toInt()
+        } catch (e: ClassCastException) {
+            prefs.getInt("flutter.user_device_id", 0)
+        }
         val customPath = prefs.getString("flutter.custom_recording_path", "") ?: ""
+
+        logToFile("Credentials loaded: token length=${token.length}, baseUrl=$baseUrl, userDeviceId=$userDeviceId, customPath=$customPath")
 
         if (token.isEmpty() || baseUrl.isEmpty()) {
             Log.w(TAG, "Missing token or baseUrl — cannot sync")
+            logToFile("Aborting sync: token or baseUrl is empty")
             updateNotification("Sync Skipped", "Not logged in", 0, 0, false)
             return
         }
 
-        // 2. Fetch today's call logs from the Android system
+        // 2. Fetch recent call logs (last 3 days) from the Android system
         val cal = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         }
-        val todayStart = cal.timeInMillis
+        val todayStart = cal.timeInMillis - (3 * 24 * 60 * 60 * 1000L) // last 3 days
+        logToFile("Fetching today's call logs since $todayStart")
         val logs = fetchCallLogs(todayStart, customPath)
+
+        logToFile("Fetched ${logs.size} call logs from system")
+        for ((idx, log) in logs.withIndex()) {
+            logToFile("Log #$idx: phone=${log["phoneNumber"]}, type=${log["callType"]}, startTime=${log["startTime"]}, duration=${log["duration"]}, recordingPath=${log["recordingPath"]}")
+        }
 
         if (logs.isEmpty()) {
             Log.i(TAG, "No call logs for today")
@@ -271,27 +334,32 @@ class CallSyncForegroundService : Service() {
         val syncResponse = httpClient.newCall(syncRequest).execute()
         if (!syncResponse.isSuccessful) {
             Log.e(TAG, "Call logs sync failed: code=${syncResponse.code}")
+            logToFile("Call logs sync failed: code=${syncResponse.code}")
             syncResponse.close()
             updateNotification("Sync Failed", "Could not sync call logs", 0, 0, false)
             return
         }
         syncResponse.close()
         Log.i(TAG, "Call logs synced successfully")
+        logToFile("Call logs synced successfully")
 
         // 4. Find recordings that need uploading
         val logsWithRecordings = logs.filter {
             val path = it["recordingPath"] as? String ?: ""
             path.isNotEmpty() && File(path).exists()
         }
+        logToFile("Found ${logsWithRecordings.size} local recordings needing upload")
 
         if (logsWithRecordings.isEmpty()) {
             Log.i(TAG, "No local recordings to upload")
+            logToFile("No local recordings found, completing sync")
             updateNotification("✓ Sync Complete", "${logs.size} calls synced, no recordings found", 0, 0, false)
             return
         }
 
         // 5. Fetch server-side call list to get CallIds for matching
         updateNotification("Preparing Uploads…", "Matching recordings to call logs", -1, 0, true)
+        logToFile("Fetching server-side calls list for matching")
 
         val listRequest = Request.Builder()
             .url("$baseUrl/api/Calls?page=1&pageSize=50")
@@ -302,6 +370,7 @@ class CallSyncForegroundService : Service() {
         val listResponse = httpClient.newCall(listRequest).execute()
         if (!listResponse.isSuccessful) {
             Log.e(TAG, "Fetch calls list failed: code=${listResponse.code}")
+            logToFile("Fetch calls list failed: code=${listResponse.code}")
             listResponse.close()
             updateNotification("Sync Partial", "Calls synced but could not match recordings", 0, 0, false)
             return
@@ -356,6 +425,7 @@ class CallSyncForegroundService : Service() {
             // Wait for file stabilization (recorder may still be writing)
             if (!waitForFileStabilization(file)) {
                 Log.w(TAG, "File not stable, skipping: ${file.name}")
+                logToFile("Recording file not stable, skipping: ${file.name}")
                 failedCount++
                 continue
             }
@@ -364,6 +434,7 @@ class CallSyncForegroundService : Service() {
             val matchedCall = matchCallLog(fetchedCalls, phoneNumber, startTimeMs)
             if (matchedCall == null) {
                 Log.w(TAG, "No matching server call for phone=$phoneNumber, time=$startTimeMs")
+                logToFile("Matching failed: could not match local recording to any call on server (phone=$phoneNumber, startTime=$startTimeMs)")
                 failedCount++
                 continue
             }
@@ -371,6 +442,7 @@ class CallSyncForegroundService : Service() {
             val callId = matchedCall["callId"] as? Int ?: 0
             val fileName = file.name
             val fileSize = file.length()
+            logToFile("Matched local recording ${file.name} to server CallId=$callId")
 
             // Upload via multipart
             try {
@@ -397,14 +469,18 @@ class CallSyncForegroundService : Service() {
                 if (uploadResponse.isSuccessful) {
                     uploadedCount++
                     Log.i(TAG, "Uploaded recording for CallId=$callId: $fileName")
+                    logToFile("Uploaded recording successfully: CallId=$callId, file=$fileName")
                 } else {
                     failedCount++
-                    Log.e(TAG, "Upload failed for CallId=$callId: code=${uploadResponse.code}, body=${uploadResponse.body?.string() ?: ""}")
+                    val respBody = uploadResponse.body?.string() ?: ""
+                    Log.e(TAG, "Upload failed for CallId=$callId: code=${uploadResponse.code}, body=$respBody")
+                    logToFile("Upload failed for CallId=$callId: code=${uploadResponse.code}, response=$respBody")
                 }
                 uploadResponse.close()
             } catch (e: Exception) {
                 failedCount++
                 Log.e(TAG, "Upload exception for CallId=$callId", e)
+                logToFile("Upload exception for CallId=$callId", e)
             }
         }
 
@@ -434,6 +510,7 @@ class CallSyncForegroundService : Service() {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
                 checkSelfPermission(Manifest.permission.READ_CALL_LOG) != PackageManager.PERMISSION_GRANTED) {
+                logToFile("READ_CALL_LOG permission is NOT granted to the service process!")
                 return callLogs
             }
 
@@ -454,6 +531,7 @@ class CallSyncForegroundService : Service() {
             )
 
             val todayFiles = cacheTodayFiles(customRecordingPath, todayStart)
+            logToFile("Cached ${todayFiles.size} filesystem files from today for recording matching")
 
             cursor?.use {
                 val numberIndex = it.getColumnIndex(CallLog.Calls.NUMBER)
@@ -491,6 +569,7 @@ class CallSyncForegroundService : Service() {
             }
         } catch (e: Exception) {
             Log.e(TAG, "fetchCallLogs error", e)
+            logToFile("Exception in fetchCallLogs", e)
         }
         return callLogs
     }
@@ -648,14 +727,19 @@ class CallSyncForegroundService : Service() {
             if (!isPhoneMatched) return@firstOrNull false
 
             val fcTime = try {
-                if (fcTimeStr.endsWith("Z")) {
-                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
-                        timeZone = TimeZone.getTimeZone("UTC")
-                    }.parse(fcTimeStr.substring(0, 19))
+                if (fcTimeStr.length >= 19) {
+                    val subStr = fcTimeStr.substring(0, 19)
+                    if (fcTimeStr.endsWith("Z")) {
+                        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
+                            timeZone = TimeZone.getTimeZone("UTC")
+                        }.parse(subStr)
+                    } else {
+                        SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
+                            timeZone = TimeZone.getDefault()
+                        }.parse(subStr)
+                    }
                 } else {
-                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).apply {
-                        timeZone = TimeZone.getDefault()
-                    }.parse(fcTimeStr.substring(0, 19))
+                    null
                 }
             } catch (e: Exception) { null }
 

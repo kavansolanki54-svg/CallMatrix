@@ -168,7 +168,7 @@ class CallStateReceiver : BroadcastReceiver() {
         val titleName = contactName.ifEmpty { phoneNumber }
 
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_menu_call)
+            .setSmallIcon(com.callmatrix.call_matrix_mobile.R.mipmap.ic_launcher)
             .setContentTitle("$callType Call — $titleName")
             .setContentText("Tap to add notes and sync call log")
             .setPriority(NotificationCompat.PRIORITY_HIGH)

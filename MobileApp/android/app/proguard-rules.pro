@@ -21,3 +21,8 @@
 -dontwarn androidx.window.extensions.area.ExtensionWindowAreaPresentation
 -dontwarn androidx.work.R$bool
 -dontwarn id.flutter.flutter_background_service.R$drawable
+
+# Keep native CallMatrix app components to prevent R8 from renaming or stripping them
+-keep class com.callmatrix.call_matrix_mobile.CallSyncForegroundService { *; }
+-keep class com.callmatrix.call_matrix_mobile.CallEndedOverlayActivity { *; }
+-keep class com.callmatrix.call_matrix_mobile.CallStateReceiver { *; }

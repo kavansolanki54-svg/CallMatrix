@@ -72,7 +72,6 @@ namespace CallMatrix.Controllers
         }
 
         [HttpPost("recording")]
-        [RequirePermission("Call Recordings", "CanUpload")]
         public async Task<IActionResult> UploadCallRecording([FromForm] UploadCallRecordingRequest request, IFormFile? file)
         {
             int employeeId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
