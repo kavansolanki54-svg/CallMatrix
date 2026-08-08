@@ -478,26 +478,35 @@ namespace CallMatrix.BLL.Services
                 }
 
                 // 3. Ensure the physical recording file path is valid
-                if (string.IsNullOrEmpty(recording.FilePath) || !System.IO.File.Exists(recording.FilePath))
+                string physicalPath = recording.FilePath ?? "";
+                if (string.IsNullOrEmpty(physicalPath) || !System.IO.File.Exists(physicalPath))
                 {
-                    // Fallback to check if we can resolve in wwwroot or via FileUrl if it's relative
-                    string physicalPath = recording.FilePath ?? "";
-                    if (string.IsNullOrEmpty(physicalPath) && !string.IsNullOrEmpty(recording.FileUrl))
+                    // Fallback using the relative FileUrl
+                    if (!string.IsNullOrEmpty(recording.FileUrl))
                     {
                         var baseDir = AppDomain.CurrentDomain.BaseDirectory;
                         string relativePath = recording.FileUrl.TrimStart('/');
-                        // check in bin project root
-                        var projectRoot = System.IO.Directory.GetParent(baseDir)?.Parent?.Parent?.FullName ?? baseDir;
-                        physicalPath = System.IO.Path.Combine(projectRoot, "wwwroot", relativePath);
+                        
+                        // Try 1: wwwroot/relativePath (IIS standard publish root)
+                        physicalPath = System.IO.Path.Combine(baseDir, "wwwroot", relativePath);
+                        
+                        // Try 2: directly in baseDir (in case baseDir is already wwwroot or relative path is configured)
                         if (!System.IO.File.Exists(physicalPath))
                         {
                             physicalPath = System.IO.Path.Combine(baseDir, relativePath);
+                        }
+                        
+                        // Try 3: check bin/projectRoot fallback (development environment)
+                        if (!System.IO.File.Exists(physicalPath))
+                        {
+                            var projectRoot = System.IO.Directory.GetParent(baseDir)?.Parent?.Parent?.FullName ?? baseDir;
+                            physicalPath = System.IO.Path.Combine(projectRoot, "wwwroot", relativePath);
                         }
                     }
 
                     if (string.IsNullOrEmpty(physicalPath) || !System.IO.File.Exists(physicalPath))
                     {
-                        return ApiResponse<string>.Fail("Recording audio file not found on disk", 404);
+                        return ApiResponse<string>.Fail($"Recording audio file not found on disk. Tried path: {physicalPath}", 404);
                     }
                     recording.FilePath = physicalPath;
                 }

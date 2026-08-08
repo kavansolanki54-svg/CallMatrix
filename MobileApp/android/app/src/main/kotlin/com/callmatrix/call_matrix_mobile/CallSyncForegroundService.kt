@@ -499,6 +499,13 @@ class CallSyncForegroundService : Service() {
         )
 
         Log.i(TAG, "Sync pipeline complete: uploaded=$uploadedCount, failed=$failedCount")
+
+        try {
+            val syncIntent = android.content.Intent("com.callmatrix.SYNC_COMPLETE")
+            sendBroadcast(syncIntent)
+        } catch (e: Exception) {
+            logToFile("Failed to send SYNC_COMPLETE broadcast", e)
+        }
     }
 
     // ─────────────────────────────────────────────────────────────

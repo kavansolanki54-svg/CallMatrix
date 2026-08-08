@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import '../../services/gemini_service.dart';
 import '../../core/network/api_client.dart';
@@ -117,8 +118,17 @@ class _AiSummaryScreenState extends State<AiSummaryScreen> {
         throw Exception("Received empty response from AI model.");
       }
     } catch (e) {
+      String errMsg = e.toString();
+      if (e is DioException) {
+        final resData = e.response?.data;
+        if (resData != null && resData is Map) {
+          errMsg = resData['message'] ?? resData['Message'] ?? errMsg;
+        } else if (e.response?.statusCode == 404) {
+          errMsg = "No recording found for this call.";
+        }
+      }
       setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
+        _error = errMsg.replaceFirst('Exception: ', '');
         _isLoading = false;
       });
     }

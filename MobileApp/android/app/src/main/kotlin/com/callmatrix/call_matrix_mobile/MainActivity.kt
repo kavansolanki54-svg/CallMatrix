@@ -17,6 +17,32 @@ import java.util.*
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.dallytasksheet.dally_task_sheet/calls"
 
+    private val syncReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: android.content.Intent?) {
+            runOnUiThread {
+                flutterEngine?.dartExecutor?.binaryMessenger?.let {
+                    MethodChannel(it, CHANNEL).invokeMethod("onSyncComplete", null)
+                }
+            }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(syncReceiver, android.content.IntentFilter("com.callmatrix.SYNC_COMPLETE"), Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(syncReceiver, android.content.IntentFilter("com.callmatrix.SYNC_COMPLETE"))
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        try {
+            unregisterReceiver(syncReceiver)
+        } catch (e: Exception) {}
+    }
+
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         setIntent(intent)

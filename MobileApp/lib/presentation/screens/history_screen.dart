@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -54,6 +55,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> with SingleTicker
           _isAudioPlaying = false;
           _playingUrl = null;
         });
+      }
+    });
+
+    // Register listener for native sync completed events
+    const MethodChannel('com.dallytasksheet.dally_task_sheet/calls')
+        .setMethodCallHandler((call) async {
+      if (call.method == 'onSyncComplete') {
+        if (mounted) {
+          // Trigger History data reload
+          ref.read(historyProvider.notifier).loadCalls(page: 1);
+        }
       }
     });
   }

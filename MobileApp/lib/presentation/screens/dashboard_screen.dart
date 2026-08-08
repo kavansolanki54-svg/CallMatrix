@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/home_provider.dart';
@@ -24,6 +25,32 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     // Run auto permission check
     WidgetsBinding.instance.addPostFrameCallback((_) {
       PermissionGuardService.ensurePermissionsOrShowModal(context);
+    });
+
+    // Register listener for native sync completed events
+    const MethodChannel('com.dallytasksheet.dally_task_sheet/calls')
+        .setMethodCallHandler((call) async {
+      if (call.method == 'onSyncComplete') {
+        if (mounted) {
+          // Trigger Home Stats data reload
+          ref.read(homeProvider.notifier).loadData();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Row(
+                children: [
+                  Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                  SizedBox(width: 8),
+                  Expanded(child: Text('Data synchronization complete')),
+                ],
+              ),
+              backgroundColor: const Color(0xFF10B981),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
     });
   }
 
