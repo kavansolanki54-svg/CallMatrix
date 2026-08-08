@@ -24,6 +24,7 @@ namespace CallMatrix.DAL.UnitOfWork
         ICallRecordingRepository CallRecordings { get; }
         IDeviceRepository Devices { get; }
         IEnumTypeRepository EnumTypes { get; }
+        IApiKeyRepository ApiKeys { get; }
 
         Task<int> SaveChangesAsync();
         Task BeginTransactionAsync();

@@ -441,11 +441,170 @@ namespace CallMatrix.BLL.Services
                 FileSize = r.FileSize ?? 0,
                 UploadStatus = r.UploadStatus,
                 RecordingDate = r.RecordingDate,
-                CreatedAt = r.CreatedAt
+                CreatedAt = r.CreatedAt,
+                AiSummary = r.AiSummary
             }).ToList();
 
             var paginated = new PaginatedResponse<CallRecordingResponse>(dtos, totalCount, request.Page, request.PageSize);
             return ApiResponse<PaginatedResponse<CallRecordingResponse>>.Ok(paginated, "Recordings retrieved successfully");
+        }
+
+        public async Task<ApiResponse<string>> GetCallRecordingSummaryAsync(int callId)
+        {
+            try
+            {
+                // 1. Check if a recording exists
+                var recording = await _unitOfWork.CallRecordings.Query()
+                    .FirstOrDefaultAsync(r => r.CallId == callId && r.IsActive);
+
+                if (recording == null)
+                {
+                    return ApiResponse<string>.Fail("No recording found for this call", 404);
+                }
+
+                // 2. If summary already exists, return it
+                if (!string.IsNullOrEmpty(recording.AiSummary))
+                {
+                    return ApiResponse<string>.Ok(recording.AiSummary, "AI summary retrieved from cache");
+                }
+
+                // 3. Ensure the physical recording file path is valid
+                if (string.IsNullOrEmpty(recording.FilePath) || !System.IO.File.Exists(recording.FilePath))
+                {
+                    // Fallback to check if we can resolve in wwwroot or via FileUrl if it's relative
+                    string physicalPath = recording.FilePath ?? "";
+                    if (string.IsNullOrEmpty(physicalPath) && !string.IsNullOrEmpty(recording.FileUrl))
+                    {
+                        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                        string relativePath = recording.FileUrl.TrimStart('/');
+                        // check in bin project root
+                        var projectRoot = System.IO.Directory.GetParent(baseDir)?.Parent?.Parent?.FullName ?? baseDir;
+                        physicalPath = System.IO.Path.Combine(projectRoot, "wwwroot", relativePath);
+                        if (!System.IO.File.Exists(physicalPath))
+                        {
+                            physicalPath = System.IO.Path.Combine(baseDir, relativePath);
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(physicalPath) || !System.IO.File.Exists(physicalPath))
+                    {
+                        return ApiResponse<string>.Fail("Recording audio file not found on disk", 404);
+                    }
+                    recording.FilePath = physicalPath;
+                }
+
+                // 4. Retrieve the active Gemini API Key
+                var geminiKey = await _unitOfWork.ApiKeys.Query()
+                    .FirstOrDefaultAsync(k => k.ServiceName == "Gemini" && k.IsActive);
+
+                if (geminiKey == null || string.IsNullOrEmpty(geminiKey.Key))
+                {
+                    return ApiResponse<string>.Fail("Gemini API Key is not configured in the system", 400);
+                }
+
+                // 5. Read the audio bytes and convert to Base64
+                byte[] audioBytes = await System.IO.File.ReadAllBytesAsync(recording.FilePath);
+                string base64Audio = Convert.ToBase64String(audioBytes);
+
+                // 6. Map file extension to standard MIME type
+                string extension = System.IO.Path.GetExtension(recording.FilePath).ToLower();
+                string mimeType = extension switch
+                {
+                    ".wav" => "audio/wav",
+                    ".m4a" => "audio/x-m4a",
+                    ".aac" => "audio/aac",
+                    ".ogg" => "audio/ogg",
+                    ".flac" => "audio/flac",
+                    ".webm" => "audio/webm",
+                    _ => "audio/mp3" // Default to audio/mp3
+                };
+
+                // 7. Request to Gemini API
+                using (var httpClient = new System.Net.Http.HttpClient())
+                {
+                    httpClient.Timeout = TimeSpan.FromMinutes(3);
+                    var requestUrl = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={geminiKey.Key}";
+
+                    var requestBody = new
+                    {
+                        contents = new[]
+                        {
+                            new
+                            {
+                                parts = new object[]
+                                {
+                                    new
+                                    {
+                                        inlineData = new
+                                        {
+                                            mimeType = mimeType,
+                                            data = base64Audio
+                                        }
+                                    },
+                                    new
+                                    {
+                                        text = "You are an AI assistant analyzing a call recording. Listen to the audio and provide:\n" +
+                                               "1. Short Summary (2-3 sentences)\n" +
+                                               "2. Key Discussion Points (bullet points starting with -)\n" +
+                                               "3. Action Items (bullet points starting with -)\n" +
+                                               "4. Sentiment (Positive / Neutral / Negative) formatted strictly as 'Sentiment: Positive', 'Sentiment: Neutral', or 'Sentiment: Negative'\n" +
+                                               "5. Important Keywords (bullet points starting with -)\n" +
+                                               "6. Follow-up Suggestions (bullet points starting with -)"
+                                    }
+                                }
+                            }
+                        }
+                    };
+
+                    var jsonOptions = new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+                    };
+                    string requestJson = System.Text.Json.JsonSerializer.Serialize(requestBody, jsonOptions);
+                    using (var httpContent = new System.Net.Http.StringContent(requestJson, System.Text.Encoding.UTF8, "application/json"))
+                    {
+                        var httpResponse = await httpClient.PostAsync(requestUrl, httpContent);
+                        if (!httpResponse.IsSuccessStatusCode)
+                        {
+                            string errContent = await httpResponse.Content.ReadAsStringAsync();
+                            System.Console.Error.WriteLine($"[CallService] Gemini API returned error status {httpResponse.StatusCode}: {errContent}");
+                            return ApiResponse<string>.Fail($"Gemini API error: {httpResponse.StatusCode}", (int)httpResponse.StatusCode);
+                        }
+
+                        string responseJson = await httpResponse.Content.ReadAsStringAsync();
+                        using (var doc = System.Text.Json.JsonDocument.Parse(responseJson))
+                        {
+                            var root = doc.RootElement;
+                            if (root.TryGetProperty("candidates", out var candidates) && 
+                                candidates.ValueKind == System.Text.Json.JsonValueKind.Array && 
+                                candidates.GetArrayLength() > 0)
+                            {
+                                var contentObj = candidates[0].GetProperty("content");
+                                var parts = contentObj.GetProperty("parts");
+                                if (parts.ValueKind == System.Text.Json.JsonValueKind.Array && parts.GetArrayLength() > 0)
+                                {
+                                    string summaryText = parts[0].GetProperty("text").GetString() ?? "";
+                                    
+                                    // Cache the summary in the database
+                                    recording.AiSummary = summaryText;
+                                    recording.UpdatedAt = DateTime.Now;
+                                    await _unitOfWork.CallRecordings.UpdateAsync(recording);
+                                    await _unitOfWork.SaveChangesAsync();
+
+                                    return ApiResponse<string>.Ok(summaryText, "AI summary generated successfully");
+                                }
+                            }
+                            
+                            return ApiResponse<string>.Fail("Failed to parse AI summary from Gemini response", 500);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Console.Error.WriteLine($"[CallService] Exception in GetCallRecordingSummaryAsync: {ex.Message}\n{ex.StackTrace}");
+                return ApiResponse<string>.Fail($"Error generating AI summary: {ex.Message}", 500);
+            }
         }
     }
 }

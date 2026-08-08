@@ -261,4 +261,10 @@ namespace CallMatrix.DAL.Repositories.Implementations
                 .ToListAsync();
         }
     }
+
+    public class ApiKeyRepository : GenericRepository<ApiKeySetting>, IApiKeyRepository
+    {
+        public ApiKeyRepository(CallMatrixDbContext context, IDbConnectionFactory connectionFactory)
+            : base(context, connectionFactory) { }
+    }
 }

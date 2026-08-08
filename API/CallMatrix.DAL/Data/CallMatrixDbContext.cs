@@ -27,6 +27,8 @@ public partial class CallMatrixDbContext : DbContext
 
     public virtual DbSet<CallRecording> CallRecordings { get; set; }
 
+    public virtual DbSet<ApiKeySetting> ApiKeys { get; set; }
+
     public virtual DbSet<CompanyMaster> CompanyMasters { get; set; }
 
     public virtual DbSet<ContactMaster> ContactMasters { get; set; }

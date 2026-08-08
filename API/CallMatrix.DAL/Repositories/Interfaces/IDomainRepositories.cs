@@ -61,4 +61,8 @@ namespace CallMatrix.DAL.Repositories.Interfaces
     {
         Task<IEnumerable<EnumMaster>> GetEnumTypesByCategoryIdAsync(short categoryId);
     }
+
+    public interface IApiKeyRepository : IGenericRepository<ApiKeySetting>
+    {
+    }
 }

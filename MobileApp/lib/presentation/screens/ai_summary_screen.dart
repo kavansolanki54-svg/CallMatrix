@@ -3,6 +3,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/services.dart';
 import '../../services/gemini_service.dart';
+import '../../core/network/api_client.dart';
+import '../../core/constants/api_constants.dart';
 
 class AiSummaryModel {
   final String summary;
@@ -58,12 +60,14 @@ class AiSummaryScreen extends StatefulWidget {
   final String contactName;
   final String phoneNumber;
   final String transcript;
+  final int? callId;
 
   const AiSummaryScreen({
     super.key,
     required this.contactName,
     required this.phoneNumber,
     required this.transcript,
+    this.callId,
   });
 
   @override
@@ -88,15 +92,21 @@ class _AiSummaryScreenState extends State<AiSummaryScreen> {
     });
 
     try {
-      if (!GeminiService.instance.isConfigured) {
-        throw Exception("Gemini API key is not configured in .env file.");
+      if (widget.callId == null) {
+        throw Exception("Call is not synchronized with the server. Cannot generate AI summary.");
       }
 
-      final rawText = await GeminiService.instance.generateSummary(
-        contactName: widget.contactName,
-        phoneNumber: widget.phoneNumber,
-        transcript: widget.transcript,
-      );
+      final dio = ApiClient.instance.dio;
+      final res = await dio.post(ApiConstants.callSummary(widget.callId!));
+      final resData = res.data;
+      final success = resData != null && (resData['success'] == true || resData['isSuccess'] == true);
+      
+      String? rawText;
+      if (success) {
+        rawText = resData['data'] as String?;
+      } else {
+        throw Exception(resData?['message'] ?? "Failed to generate AI summary.");
+      }
 
       if (rawText != null && rawText.isNotEmpty) {
         setState(() {

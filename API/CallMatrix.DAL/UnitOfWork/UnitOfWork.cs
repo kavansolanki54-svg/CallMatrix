@@ -32,6 +32,7 @@ namespace CallMatrix.DAL.UnitOfWork
         private ICallRecordingRepository? _callRecordings;
         private IDeviceRepository? _devices;
         private IEnumTypeRepository? _enumTypes;
+        private IApiKeyRepository? _apiKeys;
 
         public UnitOfWork(CallMatrixDbContext context, IDbConnectionFactory connectionFactory)
         {
@@ -59,6 +60,7 @@ namespace CallMatrix.DAL.UnitOfWork
         public ICallRecordingRepository CallRecordings => _callRecordings ??= new CallRecordingRepository(_context, _connectionFactory);
         public IDeviceRepository Devices => _devices ??= new DeviceRepository(_context, _connectionFactory);
         public IEnumTypeRepository EnumTypes => _enumTypes ??= new EnumTypeRepository(_context, _connectionFactory);
+        public IApiKeyRepository ApiKeys => _apiKeys ??= new ApiKeyRepository(_context, _connectionFactory);
 
         public async Task<int> SaveChangesAsync()
         {

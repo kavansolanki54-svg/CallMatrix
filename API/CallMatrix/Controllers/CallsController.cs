@@ -135,5 +135,13 @@ namespace CallMatrix.Controllers
             var result = await _callService.GetDashboardSummaryAsync(companyId, targetDate, employeeIdFilter);
             return StatusCode(result.StatusCode, result);
         }
+
+        [HttpPost("{callId:int}/summary")]
+        [RequirePermission("Call Recordings", "CanView")]
+        public async Task<IActionResult> GetCallRecordingSummary([FromRoute] int callId)
+        {
+            var result = await _callService.GetCallRecordingSummaryAsync(callId);
+            return StatusCode(result.StatusCode, result);
+        }
     }
 }

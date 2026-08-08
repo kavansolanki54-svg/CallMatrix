@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace CallMatrix.DAL.Entities;
@@ -44,4 +44,6 @@ public partial class CallRecording
     public virtual EmployeeMaster? CreatedByNavigation { get; set; }
 
     public virtual EmployeeMaster? UpdatedByNavigation { get; set; }
+
+    public string? AiSummary { get; set; }
 }

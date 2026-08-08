@@ -38,6 +38,7 @@ namespace CallMatrix.DTO.Response.Calls
         public string UploadStatus { get; set; } = string.Empty;
         public DateTime? RecordingDate { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? AiSummary { get; set; }
     }
 
     public class CallAnalyticsSummaryResponse

@@ -265,12 +265,12 @@ class CallSyncForegroundService : Service() {
             return
         }
 
-        // 2. Fetch recent call logs (last 3 days) from the Android system
+        // 2. Fetch today's call logs from the Android system
         val cal = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0)
             set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         }
-        val todayStart = cal.timeInMillis - (3 * 24 * 60 * 60 * 1000L) // last 3 days
+        val todayStart = cal.timeInMillis
         logToFile("Fetching today's call logs since $todayStart")
         val logs = fetchCallLogs(todayStart, customPath)
 

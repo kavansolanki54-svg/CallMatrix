@@ -202,6 +202,15 @@ class NativeCallSyncService {
                         },
                       ),
                     );
+
+                    final aiEnabled = prefs.getBool('ai_enabled') ?? true;
+                    if (aiEnabled) {
+                      try {
+                        await dio.post(ApiConstants.callSummary(callId));
+                      } catch (_) {
+                        // Ignore background errors
+                      }
+                    }
                   }
                 }
               }

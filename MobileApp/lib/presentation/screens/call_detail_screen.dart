@@ -224,11 +224,12 @@ class _CallDetailScreenState extends ConsumerState<CallDetailScreen> {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => AiSummaryScreen(
-                                contactName: name,
-                                phoneNumber: widget.phoneNumber,
-                                transcript: 'Call duration ${widget.duration} seconds on ${widget.startTime}.',
-                              ),
+                               builder: (_) => AiSummaryScreen(
+                                 contactName: name,
+                                 phoneNumber: widget.phoneNumber,
+                                 transcript: 'Call duration ${widget.duration} seconds on ${widget.startTime}.',
+                                 callId: widget.callLogId,
+                               ),
                             ),
                           );
                         },

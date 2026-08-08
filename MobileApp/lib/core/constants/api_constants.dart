@@ -11,6 +11,7 @@ class ApiConstants {
   static const String callLogsList = '/api/Calls';
   static const String callLogsSync = '/api/Calls/sync';
   static const String uploadRecording = '/api/Calls/recording';
+  static String callSummary(int callId) => '/api/Calls/$callId/summary';
 
   // Analytics
   static const String analyticsSummary = '/api/Calls/analytics';
