@@ -541,7 +541,7 @@ namespace CallMatrix.BLL.Services
                 using (var httpClient = new System.Net.Http.HttpClient())
                 {
                     httpClient.Timeout = TimeSpan.FromMinutes(3);
-                    var requestUrl = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={geminiKey.Key}";
+                    var requestUrl = $"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={geminiKey.Key}";
 
                     var requestBody = new
                     {

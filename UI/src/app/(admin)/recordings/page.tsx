@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { callService } from "@/lib/services";
-import { Search, Play, Pause, Clock, Calendar, ShieldAlert, ArrowDownToLine, PhoneCall, Disc, PhoneIncoming, PhoneOutgoing, PhoneMissed, Sparkles } from "lucide-react";
+import { Search, Play, Pause, Clock, Calendar, ShieldAlert, ArrowDownToLine, PhoneCall, Disc, PhoneIncoming, PhoneOutgoing, PhoneMissed, Sparkles, CheckSquare, MessageSquare, Lightbulb, Tag } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 
 export default function RecordingsPage() {
@@ -64,6 +64,7 @@ export default function RecordingsPage() {
       const l = line.trim();
       if (!l) continue;
 
+      // Extract sentiment from anywhere
       if (l.toLowerCase().includes("sentiment:")) {
         if (l.toLowerCase().includes("positive")) sentiment = "Positive";
         else if (l.toLowerCase().includes("negative")) sentiment = "Negative";
@@ -71,31 +72,63 @@ export default function RecordingsPage() {
         continue;
       }
 
-      if (l.toLowerCase().includes("key discussion") || l.toLowerCase().includes("discussion points")) {
+      // Check section transitions
+      if (l.toLowerCase().includes("key discussion") || l.toLowerCase().includes("discussion points") || l.toLowerCase().includes("key points")) {
         currentSection = "points";
         continue;
-      } else if (l.toLowerCase().includes("action items") || l.toLowerCase().includes("to-do")) {
+      } else if (l.toLowerCase().includes("action items") || l.toLowerCase().includes("to-do") || l.toLowerCase().includes("actionable")) {
         currentSection = "actions";
         continue;
-      } else if (l.toLowerCase().includes("keywords")) {
+      } else if (l.toLowerCase().includes("keywords") || l.toLowerCase().includes("tags")) {
         currentSection = "keywords";
         continue;
       } else if (l.toLowerCase().includes("follow-up") || l.toLowerCase().includes("suggestions")) {
         currentSection = "followups";
         continue;
-      } else if (l.match(/^\d\.\s/)) {
+      } else if (l.toLowerCase().includes("short summary") || l.toLowerCase().includes("call summary") || l.toLowerCase().includes("summary:")) {
+        currentSection = "summary";
         continue;
       }
 
-      if (l.startsWith("-") || l.startsWith("*")) {
-        const content = l.replace(/^[-*\s]+/, "");
-        if (currentSection === "points") points.push(content);
-        else if (currentSection === "actions") actions.push(content);
-        else if (currentSection === "keywords") keywords.push(content);
-        else if (currentSection === "followups") followUps.push(content);
+      // Skip lines that are purely markdown headers or numbers indicating sections
+      if (l.startsWith("#") || l.match(/^\d+\.\s+\*\*.*?\*\*/i) || l.match(/^\d+\.\s+Summary/i)) {
+        continue;
+      }
+
+      // Skip intro lines in summary section
+      if (currentSection === "summary" && (
+        l.toLowerCase().startsWith("here is") || 
+        l.toLowerCase().startsWith("based on") || 
+        l.toLowerCase().startsWith("this is a")
+      )) {
+        continue;
+      }
+
+      // Process list items or paragraphs
+      if (l.startsWith("-") || l.startsWith("*") || l.startsWith("•")) {
+        const content = l.replace(/^[-*•\s]+/, "").trim();
+        if (content.length > 0) {
+          if (currentSection === "points") points.push(content);
+          else if (currentSection === "actions") actions.push(content);
+          else if (currentSection === "keywords") keywords.push(content);
+          else if (currentSection === "followups") followUps.push(content);
+        }
       } else {
         if (currentSection === "summary") {
-          summary += (summary ? " " : "") + l;
+          // Filter out markdown bold markers from the summary block
+          const cleanText = l.replace(/\*\*/g, "").trim();
+          if (cleanText.length > 0) {
+            summary += (summary ? " " : "") + cleanText;
+          }
+        } else {
+          // If it doesn't start with a bullet point but we are in a bullet section, treat it as a bullet point anyway if it has content
+          const content = l.trim();
+          if (content.length > 0) {
+            if (currentSection === "points") points.push(content);
+            else if (currentSection === "actions") actions.push(content);
+            else if (currentSection === "keywords") keywords.push(content);
+            else if (currentSection === "followups") followUps.push(content);
+          }
         }
       }
     }
@@ -415,50 +448,63 @@ export default function RecordingsPage() {
         </div>
       )}
       {/* AI Summary Modal */}
-      <Modal isOpen={summaryOpen} onClose={() => setSummaryOpen(false)} className="max-w-[650px] p-6 m-4 overflow-y-auto max-h-[85vh]">
-        <div className="flex items-center gap-3 border-b border-gray-100 dark:border-gray-800 pb-4 mb-4">
-          <div className="p-2 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400">
+      <Modal isOpen={summaryOpen} onClose={() => setSummaryOpen(false)} className="max-w-[650px] p-6 m-4 overflow-y-auto max-h-[85vh] rounded-2xl border border-gray-100 dark:border-gray-800 shadow-2xl bg-white dark:bg-gray-900">
+        <div className="flex items-center gap-3 border-b border-gray-100 dark:border-gray-800 pb-4 mb-5">
+          <div className="p-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 shadow-sm">
             <Sparkles className="w-5 h-5 animate-pulse" />
           </div>
           <div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white">AI Call Analysis</h3>
-            <p className="text-xs text-gray-400">Powered by Gemini 1.5 Flash</p>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">AI Call Analysis</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Powered by Gemini Developer Suite</p>
           </div>
         </div>
 
         {summaryLoading && (
-          <div className="py-12 flex flex-col items-center justify-center gap-3">
-            <div className="relative w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
-            <p className="text-sm text-gray-500 animate-pulse">Gemini is transcribing & analyzing recording...</p>
+          <div className="py-16 flex flex-col items-center justify-center gap-4">
+            <div className="relative w-12 h-12 flex items-center justify-center">
+              <div className="absolute w-12 h-12 border-4 border-indigo-100 dark:border-indigo-950/50 rounded-full"></div>
+              <div className="absolute w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 animate-pulse">Gemini is transcribing & analyzing recording...</p>
           </div>
         )}
 
         {summaryError && (
-          <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-medium">
-            <h4 className="font-bold mb-1">Analysis Failed</h4>
-            <p className="text-xs opacity-90">{summaryError}</p>
+          <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/60 text-red-650 dark:text-red-400 text-sm font-medium flex gap-3 items-start">
+            <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5 text-red-550" />
+            <div>
+              <h4 className="font-bold mb-0.5">Analysis Failed</h4>
+              <p className="text-xs opacity-90 leading-relaxed">{summaryError}</p>
+            </div>
           </div>
         )}
 
         {!summaryLoading && !summaryError && parsedSummary && (
-          <div className="space-y-5 text-sm">
+          <div className="space-y-6 text-sm">
             {/* Sentiment & Overview */}
-            <div className="flex items-center justify-between gap-3 bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-800 p-3 rounded-2xl">
-              <span className="text-xs text-gray-500 font-medium">Overall Call Sentiment</span>
-              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                parsedSummary.sentiment === "Positive" ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800" :
-                parsedSummary.sentiment === "Negative" ? "bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800" :
-                "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700"
+            <div className="flex items-center justify-between gap-3 bg-gray-50/50 dark:bg-gray-800/20 border border-gray-150 dark:border-gray-800/80 p-4 rounded-2xl shadow-sm">
+              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Overall Call Sentiment</span>
+              <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-sm border ${
+                parsedSummary.sentiment === "Positive" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400" :
+                parsedSummary.sentiment === "Negative" ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400" :
+                "bg-gray-500/10 border-gray-500/20 text-gray-600 dark:text-gray-400"
               }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${
+                  parsedSummary.sentiment === "Positive" ? "bg-emerald-500 animate-pulse" :
+                  parsedSummary.sentiment === "Negative" ? "bg-rose-500 animate-pulse" :
+                  "bg-gray-400"
+                }`} />
                 {parsedSummary.sentiment}
               </span>
             </div>
 
             {/* Short Summary */}
             {parsedSummary.summary && (
-              <div className="space-y-1.5">
-                <h4 className="font-bold text-gray-800 dark:text-gray-200">Call Summary</h4>
-                <div className="p-4 rounded-2xl bg-indigo-50/20 dark:bg-indigo-950/10 border border-indigo-100/50 dark:border-indigo-950/30 text-gray-600 dark:text-gray-300 leading-relaxed">
+              <div className="space-y-2">
+                <h4 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 text-xs uppercase tracking-wider text-gray-500">
+                  Call Summary
+                </h4>
+                <div className="p-4 rounded-2xl bg-indigo-50/20 dark:bg-indigo-950/10 border border-indigo-100/50 dark:border-indigo-950/20 text-gray-700 dark:text-gray-300 leading-relaxed text-[13.5px]">
                   {parsedSummary.summary}
                 </div>
               </div>
@@ -466,56 +512,71 @@ export default function RecordingsPage() {
 
             {/* Key Discussion Points */}
             {parsedSummary.points.length > 0 && (
-              <div className="space-y-1.5">
-                <h4 className="font-bold text-gray-800 dark:text-gray-200">Key Discussion Points</h4>
-                <ul className="space-y-2">
-                  {parsedSummary.points.map((pt, i) => (
-                    <li key={i} className="flex gap-2.5 text-gray-600 dark:text-gray-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 shrink-0" />
-                      <span>{pt}</span>
-                    </li>
-                  ))}
-                </ul>
+              <div className="space-y-2">
+                <h4 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 text-xs uppercase tracking-wider text-gray-500">
+                  Key Discussion Points
+                </h4>
+                <div className="p-4 rounded-2xl bg-gray-50/30 dark:bg-gray-800/10 border-l-4 border-indigo-500 border border-gray-100 dark:border-gray-800/50">
+                  <ul className="space-y-3">
+                    {parsedSummary.points.map((pt, i) => (
+                      <li key={i} className="flex gap-3 text-gray-700 dark:text-gray-300 text-[13.5px] leading-relaxed">
+                        <MessageSquare className="w-4 h-4 text-indigo-500 dark:text-indigo-400 shrink-0 mt-0.5" />
+                        <span>{pt}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             )}
 
             {/* Action Items */}
             {parsedSummary.actions.length > 0 && (
-              <div className="space-y-1.5">
-                <h4 className="font-bold text-gray-800 dark:text-gray-200">Action Items</h4>
-                <ul className="space-y-2">
-                  {parsedSummary.actions.map((item, i) => (
-                    <li key={i} className="flex gap-2.5 text-gray-600 dark:text-gray-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-brand-500 mt-2 shrink-0" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
+              <div className="space-y-2">
+                <h4 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 text-xs uppercase tracking-wider text-gray-500">
+                  Action Items
+                </h4>
+                <div className="p-4 rounded-2xl bg-gray-50/30 dark:bg-gray-800/10 border-l-4 border-emerald-500 border border-gray-100 dark:border-gray-800/50">
+                  <ul className="space-y-3">
+                    {parsedSummary.actions.map((item, i) => (
+                      <li key={i} className="flex gap-3 text-gray-700 dark:text-gray-300 text-[13.5px] leading-relaxed">
+                        <CheckSquare className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             )}
 
             {/* Follow-ups */}
             {parsedSummary.followUps.length > 0 && (
-              <div className="space-y-1.5">
-                <h4 className="font-bold text-gray-800 dark:text-gray-200">Follow-up Suggestions</h4>
-                <ul className="space-y-2">
-                  {parsedSummary.followUps.map((item, i) => (
-                    <li key={i} className="flex gap-2.5 text-gray-600 dark:text-gray-300">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 shrink-0" />
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
+              <div className="space-y-2">
+                <h4 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 text-xs uppercase tracking-wider text-gray-500">
+                  Follow-up Suggestions
+                </h4>
+                <div className="p-4 rounded-2xl bg-gray-50/30 dark:bg-gray-800/10 border-l-4 border-amber-500 border border-gray-100 dark:border-gray-800/50">
+                  <ul className="space-y-3">
+                    {parsedSummary.followUps.map((item, i) => (
+                      <li key={i} className="flex gap-3 text-gray-700 dark:text-gray-300 text-[13.5px] leading-relaxed">
+                        <Lightbulb className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
             )}
 
             {/* Keywords */}
             {parsedSummary.keywords.length > 0 && (
-              <div className="space-y-1.5 border-t border-gray-100 dark:border-gray-800 pt-4 mt-4">
-                <h4 className="font-bold text-gray-800 dark:text-gray-200">Tags & Keywords</h4>
-                <div className="flex flex-wrap gap-1.5">
+              <div className="space-y-2.5 border-t border-gray-100 dark:border-gray-800/80 pt-4 mt-5">
+                <h4 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 text-xs uppercase tracking-wider text-gray-500">
+                  Tags & Keywords
+                </h4>
+                <div className="flex flex-wrap gap-2">
                   {parsedSummary.keywords.map((word, i) => (
-                    <span key={i} className="px-2 py-0.5 rounded-lg bg-gray-100 dark:bg-gray-800 text-[11px] font-semibold text-gray-500 dark:text-gray-400">
+                    <span key={i} className="flex items-center gap-1 px-3 py-1 rounded-full bg-gray-50 dark:bg-gray-800/60 border border-gray-200/80 dark:border-gray-700/60 text-xs font-semibold text-gray-600 dark:text-gray-400">
+                      <Tag className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                       {word}
                     </span>
                   ))}

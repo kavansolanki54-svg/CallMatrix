@@ -29,7 +29,7 @@ Write-Host "[2/4] Cleaning build artifacts & fetching dependencies..." -Foregrou
 & flutter pub get
 
 Write-Host "[3/4] Compiling release APK (this might take a few minutes)..." -ForegroundColor Yellow
-& flutter build apk --release
+& flutter build apk --release --no-tree-shake-icons
 
 Pop-Location
 

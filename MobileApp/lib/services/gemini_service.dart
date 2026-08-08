@@ -21,14 +21,14 @@ class GeminiService {
       throw Exception("Gemini API key is not configured in .env file.");
     }
 
-    final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: _apiKey);
+    final model = GenerativeModel(model: 'gemini-flash-latest', apiKey: _apiKey);
     final prompt = '''
 Analyze the following call transcript for contact $contactName ($phoneNumber):
 "$transcript"
 
 Provide:
 1. Short Summary (2-3 sentences)
-2. Key Discussion Points (bullet points)
+2. Key Discussion Points (bullet points)  
 3. Action Items (bullet points)
 4. Sentiment (Positive / Neutral / Negative)
 5. Important Keywords
