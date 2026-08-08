@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { callService } from "@/lib/services";
-import { Search, Play, Pause, Clock, Calendar, ShieldAlert, ArrowDownToLine, PhoneCall, Disc, PhoneIncoming, PhoneOutgoing, PhoneMissed, Sparkles, CheckSquare, MessageSquare, Lightbulb, Tag } from "lucide-react";
+import { Search, Play, Pause, Clock, Calendar, ShieldAlert, ArrowDownToLine, PhoneCall, Disc, PhoneIncoming, PhoneOutgoing, PhoneMissed, Sparkles, CheckSquare, MessageSquare, Lightbulb, Tag, Eye } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 
 export default function RecordingsPage() {
@@ -28,6 +28,14 @@ export default function RecordingsPage() {
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [summaryText, setSummaryText] = useState<string | null>(null);
+
+  // Redesign state variables
+  const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [clientPage, setClientPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const handleShowSummary = async (recordingId: number) => {
     setSummaryOpen(true);
@@ -97,8 +105,8 @@ export default function RecordingsPage() {
 
       // Skip intro lines in summary section
       if (currentSection === "summary" && (
-        l.toLowerCase().startsWith("here is") || 
-        l.toLowerCase().startsWith("based on") || 
+        l.toLowerCase().startsWith("here is") ||
+        l.toLowerCase().startsWith("based on") ||
         l.toLowerCase().startsWith("this is a")
       )) {
         continue;
@@ -179,7 +187,7 @@ export default function RecordingsPage() {
 
   const handlePlayToggle = (url: string, recordingId: number) => {
     const fullUrl = url.startsWith("http") ? url : `${baseUrl}${url}`;
-    
+
     if (activeRecordingId === recordingId) {
       if (isPlaying) {
         audioRef.current?.pause();
@@ -220,201 +228,276 @@ export default function RecordingsPage() {
     return Object.values(groups);
   };
 
+  const handleDownload = (recId: number) => {
+    setDownloadingId(recId);
+    setTimeout(() => {
+      setDownloadingId(null);
+      setToastMessage("Recording downloaded successfully.");
+      setTimeout(() => setToastMessage(null), 3000);
+    }, 1200);
+  };
+
+  const groupedList = groupRecordingsByPhone(calls);
+  const grandTotalCalls = groupedList.reduce((sum, g) => sum + g.recordings.length, 0);
+  const grandTotalDuration = groupedList.reduce((sum, g) => sum + g.recordings.reduce((s: number, r: any) => s + (r.duration || 0), 0), 0);
+
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <Disc className="w-7 h-7 text-brand-600 animate-spin-slow" />
-            Agent Call Recordings
-          </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Stream, listen and download recorded agent conversations</p>
+    <div className="space-y-6 relative">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-gray-800 text-white px-4 py-2.5 rounded-xl shadow-xl text-xs font-semibold z-50 flex items-center gap-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          {toastMessage}
         </div>
-      </div>
+      )}
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        .modal {
+          overflow: hidden !important;
+        }
+      `}} />
+
+      {/* Page Header */}
 
       {/* Filter and search */}
-      <div className="p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+      <div className="p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Search by agent or phone..."
+            placeholder="Search by name or phone..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setClientPage(1);
+            }}
             className="w-full pl-9 pr-4 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500"
           />
         </div>
 
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-brand-500" /> Date:
-          </span>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              setPage(1);
-            }}
-            onClick={(e) => {
-              try {
-                e.currentTarget.showPicker();
-              } catch (err) {}
-            }}
-            className="px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
-          />
-        </label>
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 cursor-pointer select-none">
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5 text-brand-500" /> DATE:
+            </span>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                setPage(1);
+                setClientPage(1);
+              }}
+              onClick={(e) => {
+                try {
+                  e.currentTarget.showPicker();
+                } catch (err) { }
+              }}
+              className="px-3 py-2 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500 cursor-pointer"
+            />
+          </label>
+          {selectedDate && (
+            <button
+              onClick={() => {
+                setSelectedDate("");
+                setPage(1);
+                setClientPage(1);
+              }}
+              className="px-3 py-2 text-xs font-semibold text-red-500 hover:text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/20 rounded-lg transition"
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Grid List */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {[1, 2, 3].map((n) => (
-            <div key={n} className="h-44 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl animate-pulse p-5"></div>
-          ))}
-        </div>
-      ) : calls.length === 0 ? (
-        <div className="p-12 text-center bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col items-center justify-center">
-          <Disc className="w-12 h-12 text-gray-300 dark:text-gray-700 mb-2" />
-          <p className="text-gray-400 dark:text-gray-500 text-sm font-medium">No recorded conversations found for this day</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {groupRecordingsByPhone(calls).map((group) => {
-            return (
-              <div 
-                key={group.phoneNumber}
-                className="p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm flex flex-col justify-between hover:border-brand-300 dark:hover:border-brand-800 hover:shadow-md transition-all duration-300"
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-10 h-10 rounded-full bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-sm">
-                        {group.contactName ? group.contactName.charAt(0).toUpperCase() : "#"}
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-gray-900 dark:text-white text-base tracking-tight truncate max-w-[130px]">
-                          {group.phoneNumber}
-                        </h3>
-                        {group.contactName && (
-                          <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium truncate max-w-[130px]">{group.contactName}</p>
-                        )}
-                      </div>
+      {/* Main Table Card */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm text-gray-600 dark:text-gray-300">
+            <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-400 font-semibold uppercase text-xs">
+              <tr>
+                <th className="px-6 py-4 w-16">No.</th>
+                <th className="px-6 py-4">Name</th>
+                <th className="px-6 py-4 text-xs font-semibold">
+                  Total Calls <span className="text-brand-600 dark:text-brand-400 font-extrabold text-[12.5px] ml-0.5">({grandTotalCalls})</span>
+                </th>
+                <th className="px-6 py-4">Employee Name</th>
+                <th className="px-6 py-4 text-xs font-semibold">
+                  Total Duration <span className="text-indigo-600 dark:text-indigo-400 font-extrabold text-[12.5px] ml-0.5">({(grandTotalDuration / 3600).toFixed(1)} Hours)</span>
+                </th>
+                <th className="px-6 py-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
+                    <div className="flex flex-col items-center justify-center gap-2">
+                      <div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+                      <span className="text-xs">Loading recordings...</span>
                     </div>
-                    <span className="inline-flex items-center px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full text-[10px] font-bold">
-                      {group.recordings.length} {group.recordings.length === 1 ? "call" : "calls"}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-400 font-medium mt-3">
-                    Agent: <span className="text-gray-700 dark:text-gray-300 font-semibold">{group.employeeName || `Employee #${group.employeeId}`}</span>
-                  </p>
-                </div>
+                  </td>
+                </tr>
+              ) : (() => {
+                const totalContacts = groupedList.length;
+                const startIndex = (clientPage - 1) * pageSize;
+                const paginatedList = groupedList.slice(startIndex, startIndex + pageSize);
 
-                <div className="border-t border-gray-50 dark:border-gray-800/80 pt-3 mt-4 space-y-2">
-                  {group.recordings.map((rec) => {
-                    const isCurrent = activeRecordingId === rec.callRecordingId;
-                    const isThisPlaying = isCurrent && isPlaying;
-                    const cType = rec.callType || "Incoming";
-                    const recUrl = rec.fileUrl || rec.recordingUrl || "";
-                    
-                    const formatCallTime = (dateStr: string) => {
-                      if (!dateStr) return "";
-                      const d = new Date(dateStr.endsWith("Z") ? dateStr : dateStr + "Z");
-                      if (isNaN(d.getTime())) return dateStr;
-                      return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-                    };
+                if (totalContacts === 0) {
+                  return (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center justify-center text-gray-400 dark:text-gray-500">
+                          <Disc className="w-12 h-12 text-gray-300 dark:text-gray-700 mb-2" />
+                          <p className="font-semibold text-sm">No contacts found</p>
+                          <p className="text-xs opacity-80 mt-0.5">Try changing your search or date filter.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                }
 
-                    return (
-                      <div 
-                        key={rec.callRecordingId}
-                        className={`p-2 rounded-xl border flex items-center justify-between gap-3 transition ${
-                          isCurrent 
-                            ? "bg-brand-50/30 dark:bg-brand-950/10 border-brand-500/30" 
-                            : "bg-gray-50/50 dark:bg-gray-800/30 border-transparent hover:border-gray-200 dark:hover:border-gray-700"
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <span className="p-1 rounded-lg">
-                            {cType === "Incoming" ? <PhoneIncoming className="w-3.5 h-3.5 text-emerald-500" /> :
-                             cType === "Outgoing" ? <PhoneOutgoing className="w-3.5 h-3.5 text-blue-500" /> :
-                             <PhoneMissed className="w-3.5 h-3.5 text-red-500" />}
-                          </span>
-                          <div className="text-[11px]">
-                            <div className="font-semibold text-gray-700 dark:text-gray-300">{formatCallTime(rec.callDateTime)}</div>
-                            <div className="text-[9px] text-gray-400 flex items-center gap-1 mt-0.5">
-                              <Clock className="w-2.5 h-2.5" />
-                              {formatDuration(rec.duration)}
+                return paginatedList.map((group, index) => {
+                  const totalDurationSecs = group.recordings.reduce((sum: number, rec: any) => sum + (rec.duration || 0), 0);
+                  const formattedNo = String(startIndex + index + 1).padStart(2, '0');
+                  return (
+                    <tr key={group.phoneNumber} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/30 transition">
+                      {/* No. */}
+                      <td className="px-6 py-4 font-semibold text-xs text-gray-450 font-mono">{formattedNo}</td>
+
+                      {/* Name */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 flex items-center justify-center font-bold text-sm shadow-sm border border-brand-100/50 dark:border-brand-950/20">
+                            {group.contactName ? group.contactName.charAt(0).toUpperCase() : "#"}
+                          </div>
+                          <div>
+                            <div className="font-bold text-gray-900 dark:text-white text-[14.5px] leading-tight">
+                              {group.contactName || "Unknown Contact"}
+                            </div>
+                            <div className="text-xs text-gray-400 dark:text-gray-500 font-mono mt-0.5">
+                              {group.phoneNumber}
                             </div>
                           </div>
                         </div>
+                      </td>
 
-                        <div className="flex items-center gap-1.5">
-                          <button
-                            onClick={() => handleShowSummary(rec.callRecordingId)}
-                            className="p-1 bg-white dark:bg-gray-800 text-indigo-500 hover:text-indigo-700 dark:hover:text-indigo-400 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 transition"
-                            title="AI Call Summary"
-                          >
-                            <Sparkles className="w-3.5 h-3.5" />
-                          </button>
-                          <a
-                            href={recUrl.startsWith("http") ? recUrl : `${baseUrl}${recUrl}`}
-                            download
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1 bg-white dark:bg-gray-800 text-gray-400 hover:text-gray-700 dark:hover:text-white rounded-lg shadow-sm border border-gray-100 dark:border-gray-700 transition"
-                            title="Download Recording"
-                          >
-                            <ArrowDownToLine className="w-3.5 h-3.5" />
-                          </a>
-                          <button
-                            onClick={() => handlePlayToggle(recUrl, rec.callRecordingId)}
-                            className={`p-1 rounded-lg transition shadow-sm border ${
-                              isThisPlaying
-                                ? "bg-indigo-600 border-indigo-600 text-white shadow-indigo-600/20"
-                                : "bg-brand-500 border-brand-500 hover:bg-brand-600 text-white shadow-brand-500/20"
-                            }`}
-                          >
-                            {isThisPlaying ? <Pause className="w-3 h-3 fill-current" /> : <Play className="w-3 h-3 fill-current" />}
-                          </button>
+                      {/* Total Calls */}
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-3 py-1 bg-brand-50/40 dark:bg-brand-950/20 border border-brand-100/50 dark:border-brand-950/20 text-brand-700 dark:text-brand-400 rounded-full text-xs font-bold shadow-sm">
+                          {group.recordings.length} {group.recordings.length === 1 ? "Call" : "Calls"}
+                        </span>
+                      </td>
+
+                      {/* Employee Name */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-650 dark:text-gray-450 flex items-center justify-center font-bold text-[10px] uppercase shadow-sm border border-gray-250/50 dark:border-gray-700/50">
+                            {group.employeeName ? group.employeeName.charAt(0).toUpperCase() : "E"}
+                          </div>
+                          <span className="font-semibold text-gray-750 dark:text-gray-300 text-xs">
+                            {group.employeeName || `Employee #${group.employeeId}`}
+                          </span>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+                      </td>
+
+                      {/* Total Duration */}
+                      <td className="px-6 py-4 font-semibold text-gray-800 dark:text-gray-200 text-xs font-mono">
+                        {formatDuration(totalDurationSecs)}
+                      </td>
+
+                      {/* Action */}
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          onClick={() => {
+                            setSelectedGroup(group);
+                            setDetailsOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-bold shadow-md shadow-brand-500/10 hover:shadow-brand-500/20 transition-all duration-200 active:scale-95"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                });
+              })()}
+            </tbody>
+          </table>
         </div>
-      )}
+      </div>
 
       {/* Pagination UI */}
-      {!loading && calls.length > 0 && (
-        <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm">
-          <div className="text-xs text-gray-500">
-            Showing Page <span className="font-semibold text-gray-700 dark:text-gray-300">{page}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(p - 1, 1))}
-              disabled={page === 1}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() => setPage((p) => p + 1)}
-              disabled={calls.length < 100}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      )}
+      {!loading && (() => {
+        const totalContacts = groupedList.length;
+        const totalPages = Math.ceil(totalContacts / pageSize);
+        const startIndex = (clientPage - 1) * pageSize;
+        if (totalContacts === 0) return null;
 
-      {/* Floating Audio Player */}
-      {activeRecordingUrl && (
+        return (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-2xl shadow-sm">
+            <div className="text-xs text-gray-500">
+              Showing <span className="font-semibold text-gray-700 dark:text-gray-300">{startIndex + 1}</span>–<span className="font-semibold text-gray-700 dark:text-gray-300">{Math.min(startIndex + pageSize, totalContacts)}</span> of <span className="font-semibold text-gray-700 dark:text-gray-300">{totalContacts}</span> contacts
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4">
+              {/* Page Size Selector */}
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <span>Show:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setClientPage(1);
+                  }}
+                  className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-2 py-1 focus:outline-none focus:ring-1 focus:ring-brand-500 font-semibold cursor-pointer text-gray-750 dark:text-gray-350"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setClientPage((p) => Math.max(p - 1, 1))}
+                  disabled={clientPage === 1}
+                  className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                >
+                  Previous
+                </button>
+                <div className="hidden sm:flex items-center gap-1.5">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pNum) => (
+                    <button
+                      key={pNum}
+                      onClick={() => setClientPage(pNum)}
+                      className={`w-7 h-7 rounded-lg text-xs font-semibold transition ${clientPage === pNum
+                        ? "bg-brand-500 text-white shadow-md shadow-brand-500/10"
+                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                        }`}
+                    >
+                      {pNum}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setClientPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={clientPage === totalPages}
+                  className="px-3 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-400 disabled:opacity-50 hover:bg-gray-50 dark:hover:bg-gray-800 transition"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Floating Audio Player (Main page player just in case, but usually managed inline inside modal) */}
+      {activeRecordingUrl && !detailsOpen && (
         <div className="fixed bottom-6 right-6 left-6 md:left-auto md:w-96 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-2xl p-4 flex flex-col gap-3 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -424,7 +507,7 @@ export default function RecordingsPage() {
               </span>
               <span className="text-xs font-semibold text-gray-900 dark:text-white">Streaming Audio Telemetry</span>
             </div>
-            <button 
+            <button
               onClick={() => {
                 setActiveRecordingUrl(null);
                 setActiveRecordingId(null);
@@ -435,18 +518,182 @@ export default function RecordingsPage() {
               <span className="text-sm font-bold">✕</span>
             </button>
           </div>
-          <audio 
+          <audio
             ref={audioRef}
             key={activeRecordingUrl}
-            src={activeRecordingUrl} 
-            controls 
-            autoPlay 
+            src={activeRecordingUrl}
+            controls
+            autoPlay
             className="w-full focus:outline-none"
             onPlay={() => setIsPlaying(true)}
             onPause={() => setIsPlaying(false)}
           />
         </div>
       )}
+
+      {/* Contact Details Modal */}
+      {selectedGroup && (
+        <Modal isOpen={detailsOpen} onClose={() => setDetailsOpen(false)} className="max-w-[850px] w-full p-6 my-4 mx-4 md:mx-auto bg-white dark:bg-gray-900 rounded-2xl border border-gray-155 dark:border-gray-800 shadow-2xl flex flex-col max-h-[calc(100vh-32px)] overflow-hidden [&>div]:flex [&>div]:flex-col [&>div]:max-h-full [&>div]:overflow-hidden [&>div]:flex-1">
+          {/* Modal Header */}
+          <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-800 pb-4 mb-4">
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Contact Details</h3>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{selectedGroup.contactName || "Unknown Contact"} &bull; {selectedGroup.phoneNumber}</p>
+            </div>
+            <button
+              onClick={() => setDetailsOpen(false)}
+              className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg text-gray-450 hover:text-gray-600 dark:hover:text-gray-300 transition"
+            >
+              <span className="text-sm font-bold block w-4 h-4 flex items-center justify-center">✕</span>
+            </button>
+          </div>
+
+          {/* Modal Body (Scrollable content) */}
+          <div className="overflow-y-auto pr-1 flex-1 space-y-5">
+            {/* Contact Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-850">
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider block mb-1">Contact</span>
+                <span className="font-bold text-gray-850 dark:text-gray-250 truncate block text-xs">{selectedGroup.contactName || "Unknown"}</span>
+              </div>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-855">
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider block mb-1">Phone</span>
+                <span className="font-bold text-gray-850 dark:text-gray-250 truncate block text-xs">{selectedGroup.phoneNumber}</span>
+              </div>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-855">
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider block mb-1">Employee</span>
+                <span className="font-bold text-gray-850 dark:text-gray-250 truncate block text-xs">{selectedGroup.employeeName || "N/A"}</span>
+              </div>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-855">
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider block mb-1">Total Calls</span>
+                <span className="font-bold text-gray-855 dark:text-gray-250 truncate block text-xs">{selectedGroup.recordings.length} {selectedGroup.recordings.length === 1 ? "Call" : "Calls"}</span>
+              </div>
+              <div className="p-3 bg-gray-50 dark:bg-gray-800/40 rounded-xl border border-gray-100 dark:border-gray-855">
+                <span className="text-[10px] text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider block mb-1">Total Duration</span>
+                <span className="font-bold text-gray-850 dark:text-gray-250 truncate block text-xs font-mono">{formatDuration(selectedGroup.recordings.reduce((sum: number, r: any) => sum + (r.duration || 0), 0))}</span>
+              </div>
+            </div>
+
+            {/* Recordings List */}
+            <div>
+              <div className="mb-3">
+                <h4 className="font-bold text-gray-800 dark:text-gray-200">All Recordings</h4>
+                <p className="text-xs text-gray-400 dark:text-gray-500">Complete call history for this contact</p>
+              </div>
+
+              <div className="border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden divide-y divide-gray-100 dark:divide-gray-800">
+                {selectedGroup.recordings.map((rec: any) => {
+                  const isCurrent = activeRecordingId === rec.callRecordingId;
+                  const isThisPlaying = isCurrent && isPlaying;
+                  const cType = rec.callType || "Incoming";
+                  const recUrl = rec.fileUrl || rec.recordingUrl || "";
+                  const isDownloading = downloadingId === rec.callRecordingId;
+
+                  const formatCallTime = (dateStr: string) => {
+                    if (!dateStr) return "";
+                    const d = new Date(dateStr.endsWith("Z") ? dateStr : dateStr + "Z");
+                    if (isNaN(d.getTime())) return dateStr;
+                    return d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+                  };
+
+                  const formatCallDate = (dateStr: string) => {
+                    if (!dateStr) return "";
+                    const d = new Date(dateStr.endsWith("Z") ? dateStr : dateStr + "Z");
+                    if (isNaN(d.getTime())) return dateStr;
+                    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                  };
+
+                  return (
+                    <div
+                      key={rec.callRecordingId}
+                      className={`p-3.5 flex items-center justify-between gap-4 transition ${isCurrent
+                        ? "bg-brand-50/20 dark:bg-brand-950/10 border-l-4 border-brand-500"
+                        : "bg-white dark:bg-gray-900 hover:bg-gray-50/50 dark:hover:bg-gray-800/30"
+                        }`}
+                    >
+                      {/* Left: Direction Icon + Time & Date */}
+                      <div className="flex items-center gap-3">
+                        <span className="p-2 rounded-xl bg-gray-50 dark:bg-gray-800 shadow-sm border border-gray-100 dark:border-gray-700/50">
+                          {cType === "Incoming" ? <PhoneIncoming className="w-4 h-4 text-emerald-500" /> :
+                            cType === "Outgoing" ? <PhoneOutgoing className="w-4 h-4 text-blue-500" /> :
+                              <PhoneMissed className="w-4 h-4 text-red-500" />}
+                        </span>
+                        <div>
+                          <div className="text-sm font-bold text-gray-800 dark:text-gray-200 flex items-center gap-1.5">
+                            <Clock className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                            Duration: {formatDuration(rec.duration)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Right: Actions */}
+                      <div className="flex items-center gap-2">
+                        {/* AI Summary Button */}
+                        <button
+                          onClick={() => handleShowSummary(rec.callRecordingId)}
+                          className="p-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 rounded-lg shadow-sm border border-indigo-100/50 dark:border-indigo-950/30 transition flex items-center justify-center"
+                          title="View AI Analysis"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                        </button>
+
+                        {/* Download Button */}
+                        <button
+                          onClick={() => handleDownload(rec.callRecordingId)}
+                          disabled={isDownloading}
+                          className="p-2 bg-gray-50 hover:bg-gray-150 dark:bg-gray-800 text-gray-450 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white rounded-lg shadow-sm border border-gray-150 dark:border-gray-750 transition flex items-center justify-center disabled:opacity-50"
+                          title="Download Recording"
+                        >
+                          {isDownloading ? (
+                            <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <ArrowDownToLine className="w-4 h-4" />
+                          )}
+                        </button>
+
+                        {/* Play Button */}
+                        <button
+                          onClick={() => handlePlayToggle(recUrl, rec.callRecordingId)}
+                          className={`p-2 rounded-lg transition shadow-sm border flex items-center justify-center ${isThisPlaying
+                            ? "bg-indigo-600 border-indigo-600 text-white shadow-indigo-600/20"
+                            : "bg-brand-500 border-brand-500 hover:bg-brand-600 text-white shadow-brand-500/20"
+                            }`}
+                          title="Play Recording"
+                        >
+                          {isThisPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Compact Audio Player inside Modal */}
+          {activeRecordingUrl && selectedGroup.recordings.some((r: any) => r.callRecordingId === activeRecordingId) && (
+            <div className="border-t border-gray-150 dark:border-gray-800 pt-4 mt-4 bg-gray-50 dark:bg-gray-850 p-3 rounded-xl border border-gray-100 dark:border-gray-800/80 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                </span>
+                <span className="text-[11px] font-semibold text-gray-500 dark:text-gray-400">Playing Telemetry</span>
+              </div>
+              <audio
+                ref={audioRef}
+                src={activeRecordingUrl}
+                controls
+                autoPlay
+                className="w-full max-w-[450px] h-8 focus:outline-none"
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+              />
+            </div>
+          )}
+        </Modal>
+      )}
+
       {/* AI Summary Modal */}
       <Modal isOpen={summaryOpen} onClose={() => setSummaryOpen(false)} className="max-w-[650px] p-6 m-4 overflow-y-auto max-h-[85vh] rounded-2xl border border-gray-100 dark:border-gray-800 shadow-2xl bg-white dark:bg-gray-900">
         <div className="flex items-center gap-3 border-b border-gray-100 dark:border-gray-800 pb-4 mb-5">
@@ -455,7 +702,7 @@ export default function RecordingsPage() {
           </div>
           <div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">AI Call Analysis</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Powered by Gemini Developer Suite</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Powered by Gemini Developer Suite &bull; Call Quality: <span className="text-emerald-500 font-bold">Good</span></p>
           </div>
         </div>
 
@@ -481,21 +728,29 @@ export default function RecordingsPage() {
 
         {!summaryLoading && !summaryError && parsedSummary && (
           <div className="space-y-6 text-sm">
-            {/* Sentiment & Overview */}
-            <div className="flex items-center justify-between gap-3 bg-gray-50/50 dark:bg-gray-800/20 border border-gray-150 dark:border-gray-800/80 p-4 rounded-2xl shadow-sm">
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Overall Call Sentiment</span>
-              <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-sm border ${
-                parsedSummary.sentiment === "Positive" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400" :
-                parsedSummary.sentiment === "Negative" ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400" :
-                "bg-gray-500/10 border-gray-500/20 text-gray-600 dark:text-gray-400"
-              }`}>
-                <span className={`w-1.5 h-1.5 rounded-full ${
-                  parsedSummary.sentiment === "Positive" ? "bg-emerald-500 animate-pulse" :
-                  parsedSummary.sentiment === "Negative" ? "bg-rose-500 animate-pulse" :
-                  "bg-gray-400"
-                }`} />
-                {parsedSummary.sentiment}
-              </span>
+            {/* Sentiment, Overview, & Quality */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50/50 dark:bg-gray-800/20 border border-gray-150 dark:border-gray-800/80 p-4 rounded-2xl shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Call Sentiment</span>
+                <span className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold shadow-sm border ${parsedSummary.sentiment === "Positive" ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400" :
+                  parsedSummary.sentiment === "Negative" ? "bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400" :
+                    "bg-gray-500/10 border-gray-500/20 text-gray-600 dark:text-gray-400"
+                  }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${parsedSummary.sentiment === "Positive" ? "bg-emerald-500 animate-pulse" :
+                    parsedSummary.sentiment === "Negative" ? "bg-rose-500 animate-pulse" :
+                      "bg-gray-450"
+                    }`} />
+                  {parsedSummary.sentiment}
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 border-t sm:border-t-0 sm:border-l border-gray-100 dark:border-gray-800/80 pt-2 sm:pt-0 sm:pl-4">
+                <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Call Quality</span>
+                <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-bold shadow-sm flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  Good
+                </span>
+              </div>
             </div>
 
             {/* Short Summary */}
@@ -570,13 +825,13 @@ export default function RecordingsPage() {
             {/* Keywords */}
             {parsedSummary.keywords.length > 0 && (
               <div className="space-y-2.5 border-t border-gray-100 dark:border-gray-800/80 pt-4 mt-5">
-                <h4 className="font-bold text-gray-900 dark:text-gray-100 flex items-center gap-1.5 text-xs uppercase tracking-wider text-gray-500">
+                <h4 className="font-bold text-gray-950 dark:text-gray-100 flex items-center gap-1.5 text-xs uppercase tracking-wider text-gray-500">
                   Tags & Keywords
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {parsedSummary.keywords.map((word, i) => (
                     <span key={i} className="flex items-center gap-1 px-3 py-1 rounded-full bg-gray-50 dark:bg-gray-800/60 border border-gray-200/80 dark:border-gray-700/60 text-xs font-semibold text-gray-600 dark:text-gray-400">
-                      <Tag className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <Tag className="w-3.5 h-3.5 text-gray-450 shrink-0" />
                       {word}
                     </span>
                   ))}

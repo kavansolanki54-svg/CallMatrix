@@ -41,9 +41,13 @@ namespace CallMatrix.DAL.Repositories.Implementations
                 query = query.Where(c => c.CallDateTime.Date == targetDate);
             }
 
-            if (filters != null && filters.TryGetValue("CallType", out var callTypeVal) && callTypeVal is string callType && !string.IsNullOrEmpty(callType))
+            if (filters != null && filters.TryGetValue("CallType", out var callTypeVal) && callTypeVal != null)
             {
-                query = query.Where(c => c.CallType == callType);
+                var callType = callTypeVal.ToString();
+                if (!string.IsNullOrEmpty(callType))
+                {
+                    query = query.Where(c => c.CallType == callType);
+                }
             }
 
             if (!string.IsNullOrEmpty(search))
