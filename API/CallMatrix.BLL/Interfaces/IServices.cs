@@ -57,7 +57,7 @@ namespace CallMatrix.BLL.Interfaces
         Task<ApiResponse<CallAnalyticsSummaryResponse>> GetAnalyticsSummaryAsync(int companyId, DateTime? startDate, DateTime? endDate, int? employeeId = null);
         Task<ApiResponse<DashboardSummaryResponse>> GetDashboardSummaryAsync(int companyId, DateTime? date = null, int? employeeId = null);
         Task<ApiResponse<PaginatedResponse<CallRecordingResponse>>> GetRecordingsAsync(PaginationRequest request, int companyId, int? employeeId = null);
-        Task<ApiResponse<string>> GetCallRecordingSummaryAsync(int callId);
+        Task<ApiResponse<string>> GetCallRecordingSummaryAsync(int? callId = null, int? recordingId = null);
     }
 
     public interface IDeviceService

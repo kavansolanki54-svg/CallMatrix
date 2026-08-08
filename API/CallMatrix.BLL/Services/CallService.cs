@@ -449,17 +449,26 @@ namespace CallMatrix.BLL.Services
             return ApiResponse<PaginatedResponse<CallRecordingResponse>>.Ok(paginated, "Recordings retrieved successfully");
         }
 
-        public async Task<ApiResponse<string>> GetCallRecordingSummaryAsync(int callId)
+        public async Task<ApiResponse<string>> GetCallRecordingSummaryAsync(int? callId = null, int? recordingId = null)
         {
             try
             {
-                // 1. Check if a recording exists
-                var recording = await _unitOfWork.CallRecordings.Query()
-                    .FirstOrDefaultAsync(r => r.CallId == callId && r.IsActive);
+                // 1. Check if a recording exists (prefer recordingId, fallback to callId)
+                CallRecording? recording = null;
+                if (recordingId.HasValue)
+                {
+                    recording = await _unitOfWork.CallRecordings.Query()
+                        .FirstOrDefaultAsync(r => r.CallRecordingId == recordingId.Value && r.IsActive);
+                }
+                else if (callId.HasValue)
+                {
+                    recording = await _unitOfWork.CallRecordings.Query()
+                        .FirstOrDefaultAsync(r => r.CallId == callId.Value && r.IsActive);
+                }
 
                 if (recording == null)
                 {
-                    return ApiResponse<string>.Fail("No recording found for this call", 404);
+                    return ApiResponse<string>.Fail("No recording found", 404);
                 }
 
                 // 2. If summary already exists, return it

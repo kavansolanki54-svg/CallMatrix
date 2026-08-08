@@ -212,6 +212,14 @@ export const callService = {
     const res = await apiClient.get(url);
     return res.data;
   },
+  getCallSummary: async (callId: number) => {
+    const res = await apiClient.post(`/calls/${callId}/summary`);
+    return res.data;
+  },
+  getRecordingSummary: async (recordingId: number) => {
+    const res = await apiClient.post(`/calls/recordings/${recordingId}/summary`);
+    return res.data;
+  },
 };
 
 export const deviceService = {

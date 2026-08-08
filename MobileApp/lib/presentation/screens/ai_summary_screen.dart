@@ -110,11 +110,11 @@ class _AiSummaryScreenState extends State<AiSummaryScreen> {
 
       if (rawText != null && rawText.isNotEmpty) {
         setState(() {
-          _aiSummary = AiSummaryModel.fromRawText(rawText);
+          _aiSummary = AiSummaryModel.fromRawText(rawText!);
           _isLoading = false;
         });
       } else {
-        throw Exception("Received empty response from Gemini model.");
+        throw Exception("Received empty response from AI model.");
       }
     } catch (e) {
       setState(() {

@@ -193,7 +193,7 @@ class NativeCallSyncService {
                       'file': await MultipartFile.fromFile(file.path, filename: fileName),
                     });
 
-                    await dio.post(
+                    final recordingResponse = await dio.post(
                       ApiConstants.uploadRecording,
                       data: recordingPayload,
                       options: Options(
@@ -206,7 +206,19 @@ class NativeCallSyncService {
                     final aiEnabled = prefs.getBool('ai_enabled') ?? true;
                     if (aiEnabled) {
                       try {
-                        await dio.post(ApiConstants.callSummary(callId));
+                        final resData = recordingResponse.data;
+                        final success = resData != null && (resData['success'] == true || resData['isSuccess'] == true);
+                        if (success) {
+                          final recData = resData['data'];
+                          final recordingId = recData != null ? recData['callRecordingId'] as int? : null;
+                          if (recordingId != null) {
+                            await dio.post(ApiConstants.recordingSummary(recordingId));
+                          } else {
+                            await dio.post(ApiConstants.callSummary(callId));
+                          }
+                        } else {
+                          await dio.post(ApiConstants.callSummary(callId));
+                        }
                       } catch (_) {
                         // Ignore background errors
                       }

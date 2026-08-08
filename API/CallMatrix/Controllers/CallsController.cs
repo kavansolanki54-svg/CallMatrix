@@ -140,7 +140,15 @@ namespace CallMatrix.Controllers
         [RequirePermission("Call Recordings", "CanView")]
         public async Task<IActionResult> GetCallRecordingSummary([FromRoute] int callId)
         {
-            var result = await _callService.GetCallRecordingSummaryAsync(callId);
+            var result = await _callService.GetCallRecordingSummaryAsync(callId: callId);
+            return StatusCode(result.StatusCode, result);
+        }
+
+        [HttpPost("recordings/{recordingId:int}/summary")]
+        [RequirePermission("Call Recordings", "CanView")]
+        public async Task<IActionResult> GetCallRecordingSummaryByRecording([FromRoute] int recordingId)
+        {
+            var result = await _callService.GetCallRecordingSummaryAsync(recordingId: recordingId);
             return StatusCode(result.StatusCode, result);
         }
     }
