@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.callmatrix" "\0"
-            VALUE "FileDescription", "call_matrix_mobile" "\0"
+            VALUE "CompanyName", "com.callalyze" "\0"
+            VALUE "FileDescription", "call_alyze_mobile" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "call_matrix_mobile" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.callmatrix. All rights reserved." "\0"
-            VALUE "OriginalFilename", "call_matrix_mobile.exe" "\0"
-            VALUE "ProductName", "call_matrix_mobile" "\0"
+            VALUE "InternalName", "call_alyze_mobile" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 com.callalyze. All rights reserved." "\0"
+            VALUE "OriginalFilename", "call_alyze_mobile.exe" "\0"
+            VALUE "ProductName", "call_alyze_mobile" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

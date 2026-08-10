@@ -46,7 +46,7 @@ export default function SignUpForm() {
       }
     } catch (err: any) {
       console.error("SignUp failed", err);
-      setError(err.response?.data?.message || "Failed to connect to CallMatrix Web API");
+      setError(err.response?.data?.message || "Failed to connect to Callalyze Web API");
     } finally {
       setLoading(false);
     }

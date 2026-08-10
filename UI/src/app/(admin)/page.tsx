@@ -150,7 +150,7 @@ export default function DashboardPage() {
       {/* Header Banner */}
       <div className="p-6 rounded-2xl bg-gradient-to-r from-brand-600 via-indigo-600 to-purple-600 text-white shadow-xl shadow-brand-500/20 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-extrabold mb-2">CallMatrix Executive Overview</h1>
+          <h1 className="text-3xl font-extrabold mb-2">Callalyze Executive Overview</h1>
           <p className="text-brand-100 text-sm max-w-xl">
             Real-time enterprise intelligence monitoring call volume, active mobile telemetry, and CRM sales pipelines.
           </p>

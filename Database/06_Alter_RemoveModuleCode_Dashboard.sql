@@ -1,12 +1,12 @@
 -- ====================================================
--- CALLMATRIX ERP + CRM - ALTER SCRIPT
+-- CALLALYZE ERP + CRM - ALTER SCRIPT
 -- Applies updates to an existing database:
 -- 1. Drops ModuleCode column and constraint from MenuMaster
 -- 2. Removes IX_MenuMaster_ModuleCode index
 -- 3. Deletes 'Dashboard' menu entry (if exists) and cleans up references
 -- ====================================================
 
-USE [CallMatrixDB];
+USE [CallalyzeDB];
 GO
 
 PRINT 'Starting database migration/alter script...';

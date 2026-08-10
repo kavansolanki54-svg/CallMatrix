@@ -2,8 +2,8 @@ import SignUpForm from "@/components/auth/SignUpForm";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Sign Up | CallMatrix Workspace",
-  description: "Create a new CallMatrix Enterprise Workspace account.",
+  title: "Sign Up | Callalyze Workspace",
+  description: "Create a new Callalyze Enterprise Workspace account.",
 };
 
 export default function SignUp() {

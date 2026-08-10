@@ -163,7 +163,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> with SingleTicker
                   return Theme(
                     data: Theme.of(context).copyWith(
                       colorScheme: const ColorScheme.dark(
-                        primary: Color(0xFF465FFF),
+                        primary: Color(0xFF0070F3),
                         onPrimary: Colors.white,
                         surface: Color(0xFF1D2939),
                         onSurface: Colors.white,
@@ -194,9 +194,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> with SingleTicker
         bottom: TabBar(
           controller: _tabController,
           isScrollable: false,
-          indicatorColor: const Color(0xFF465FFF),
+          indicatorColor: const Color(0xFF0070F3),
           indicatorWeight: 3,
-          labelColor: const Color(0xFF465FFF),
+          labelColor: const Color(0xFF0070F3),
           unselectedLabelColor: Colors.blueGrey.shade300,
           labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           tabs: _tabs.map((t) => Tab(text: t)).toList(),
@@ -210,7 +210,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> with SingleTicker
               color: const Color(0xFF1D2939),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF465FFF)),
+                  const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF0070F3)),
                   const SizedBox(width: 8),
                   Text(
                     'Date: ${history.selectedDate!.year}-${history.selectedDate!.month.toString().padLeft(2, '0')}-${history.selectedDate!.day.toString().padLeft(2, '0')}',
@@ -238,7 +238,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> with SingleTicker
                     search: history.searchQuery,
                     date: history.selectedDate,
                   ),
-              color: const Color(0xFF465FFF),
+              color: const Color(0xFF0070F3),
               child: history.isLoading
                   ? const Padding(
                       padding: EdgeInsets.all(20),
@@ -335,8 +335,8 @@ class _GroupedCallCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: const Color(0xFF465FFF).withOpacity(0.15),
-                  foregroundColor: const Color(0xFF465FFF),
+                  backgroundColor: const Color(0xFF0070F3).withOpacity(0.15),
+                  foregroundColor: const Color(0xFF0070F3),
                   child: Text(initials, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 ),
                 const SizedBox(width: 12),
@@ -396,7 +396,7 @@ class _GroupedCallCard extends StatelessWidget {
                 final typeColor = call.callType.toLowerCase() == 'incoming'
                     ? Colors.blue
                     : call.callType.toLowerCase() == 'outgoing'
-                        ? const Color(0xFF465FFF)
+                        ? const Color(0xFF0070F3)
                         : call.callType.toLowerCase() == 'missed'
                             ? Colors.redAccent
                             : Colors.orange;
@@ -480,8 +480,8 @@ class _GroupedCallCard extends StatelessWidget {
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
                                 color: isThisPlaying 
-                                    ? const Color(0xFF465FFF) 
-                                    : const Color(0xFF465FFF).withOpacity(0.1),
+                                    ? const Color(0xFF0070F3) 
+                                    : const Color(0xFF0070F3).withOpacity(0.1),
                                 shape: BoxShape.circle,
                               ),
                               child: isThisLoading
@@ -490,13 +490,13 @@ class _GroupedCallCard extends StatelessWidget {
                                       height: 14,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2, 
-                                        color: Color(0xFF465FFF),
+                                        color: Color(0xFF0070F3),
                                       ),
                                     )
                                   : Icon(
                                       isThisPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                                       size: 14,
-                                      color: isThisPlaying ? Colors.white : const Color(0xFF465FFF),
+                                      color: isThisPlaying ? Colors.white : const Color(0xFF0070F3),
                                     ),
                             ),
                           ),

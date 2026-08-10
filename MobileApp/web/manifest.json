@@ -1,6 +1,6 @@
 {
-    "name": "call_matrix_mobile",
-    "short_name": "call_matrix_mobile",
+    "name": "call_alyze_mobile",
+    "short_name": "call_alyze_mobile",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

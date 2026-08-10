@@ -1,7 +1,7 @@
 -- ====================================================
 -- CREATE TABLE [dbo].[DesignationMaster]
 -- ====================================================
-USE [CallMatrixDB];
+USE [CallalyzeDB];
 GO
 
 IF OBJECT_ID('dbo.DesignationMaster', 'U') IS NOT NULL

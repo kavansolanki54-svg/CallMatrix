@@ -45,7 +45,7 @@ export default function SignInForm() {
       } else if (status === 401) {
         setError(serverMessage || "username and password is invalid");
       } else {
-        setError(serverMessage || "Failed to connect to CallMatrix Web API");
+        setError(serverMessage || "Failed to connect to Callalyze Web API");
       }
     } finally {
       setLoading(false);

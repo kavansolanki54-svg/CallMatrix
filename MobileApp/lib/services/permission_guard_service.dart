@@ -60,7 +60,7 @@ class PermissionGuardService {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'To use CallMatrix, you MUST grant all permissions below. The app will NOT sync calls without them:',
+                    'To use Callalyze, you MUST grant all permissions below. The app will NOT sync calls without them:',
                     style: TextStyle(fontSize: 14, height: 1.4, color: Colors.white70),
                   ),
                   SizedBox(height: 14),

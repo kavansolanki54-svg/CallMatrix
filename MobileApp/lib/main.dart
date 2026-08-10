@@ -45,19 +45,19 @@ void main() async {
 
   runApp(
     const ProviderScope(
-      child: CallMatrixApp(),
+      child: CallalyzeApp(),
     ),
   );
 }
 
-class CallMatrixApp extends ConsumerStatefulWidget {
-  const CallMatrixApp({super.key});
+class CallalyzeApp extends ConsumerStatefulWidget {
+  const CallalyzeApp({super.key});
 
   @override
-  ConsumerState<CallMatrixApp> createState() => _CallMatrixAppState();
+  ConsumerState<CallalyzeApp> createState() => _CallalyzeAppState();
 }
 
-class _CallMatrixAppState extends ConsumerState<CallMatrixApp> {
+class _CallalyzeAppState extends ConsumerState<CallalyzeApp> {
   @override
   void initState() {
     super.initState();
@@ -76,7 +76,7 @@ class _CallMatrixAppState extends ConsumerState<CallMatrixApp> {
       brightness: Brightness.dark,
       scaffoldBackgroundColor: const Color(0xFF0C111D),
       colorScheme: const ColorScheme.dark(
-        primary: Color(0xFF465FFF),
+        primary: Color(0xFF0070F3),
         secondary: Color(0xFF10B981),
         surface: Color(0xFF1D2939),
       ),
@@ -91,7 +91,7 @@ class _CallMatrixAppState extends ConsumerState<CallMatrixApp> {
     );
 
     return MaterialApp(
-      title: 'CallMatrix Mobile',
+      title: 'Callalyze Mobile',
       debugShowCheckedModeBanner: false,
       theme: darkTheme, // Standardized dark executive slate theme
       themeMode: ThemeMode.dark,
@@ -99,7 +99,7 @@ class _CallMatrixAppState extends ConsumerState<CallMatrixApp> {
           ? const Scaffold(
               backgroundColor: Color(0xFF0C111D),
               body: Center(
-                child: CircularProgressIndicator(color: Color(0xFF465FFF)),
+                child: CircularProgressIndicator(color: Color(0xFF0070F3)),
               ),
             )
           : authState.isAuthenticated

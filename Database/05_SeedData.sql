@@ -1,9 +1,9 @@
 -- ====================================================
--- CALLMATRIX ERP + CRM - SEED DATA SCRIPTS
+-- CALLALYZE ERP + CRM - SEED DATA SCRIPTS
 -- Default data for production deployment
 -- ====================================================
 
-USE [CallMatrixDB];
+USE [CallalyzeDB];
 GO
 
 
@@ -443,7 +443,7 @@ INSERT INTO [dbo].[AppSettings]
     [CreatedAt], [CreatedBy], [IsActive]
 )
 VALUES
-    (1, N'APP_NAME',                N'CallMatrix',              N'Application display name',                    GETDATE(), 1, 1),
+    (1, N'APP_NAME',                N'Callalyze',              N'Application display name',                    GETDATE(), 1, 1),
     (1, N'MAX_LOGIN_ATTEMPTS',      N'5',                       N'Maximum failed login attempts before lockout', GETDATE(), 1, 1),
     (1, N'LOCKOUT_DURATION_MIN',    N'15',                      N'Account lockout duration in minutes',         GETDATE(), 1, 1),
     (1, N'SESSION_TIMEOUT_MIN',     N'60',                      N'Session timeout in minutes',                  GETDATE(), 1, 1),

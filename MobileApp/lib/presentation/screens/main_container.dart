@@ -81,7 +81,7 @@ class _MainContainerState extends ConsumerState<MainContainer> with WidgetsBindi
           ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: const Color(0xFF465FFF),
+        selectedItemColor: const Color(0xFF0070F3),
         unselectedItemColor: Colors.blueGrey.shade400,
         backgroundColor: const Color(0xFF1D2939),
         type: BottomNavigationBarType.fixed,

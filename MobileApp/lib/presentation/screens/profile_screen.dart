@@ -143,10 +143,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-      leading: Icon(icon, color: selected ? const Color(0xFF6366F1) : Colors.white70, size: 20),
+      leading: Icon(icon, color: selected ? const Color(0xFF00A896) : Colors.white70, size: 20),
       title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 15)),
       trailing: selected
-          ? const Icon(Icons.check_circle_rounded, color: Color(0xFF6366F1), size: 22)
+          ? const Icon(Icons.check_circle_rounded, color: Color(0xFF00A896), size: 22)
           : null,
       onTap: onTap,
     );
@@ -184,7 +184,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         leading: const Icon(Icons.language_rounded, color: Colors.white70, size: 20),
                         title: Text(lang, style: const TextStyle(color: Colors.white, fontSize: 15)),
                         trailing: prefs.aiLanguage == lang
-                            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF6366F1), size: 22)
+                            ? const Icon(Icons.check_circle_rounded, color: Color(0xFF00A896), size: 22)
                             : null,
                         onTap: () {
                           prefs.setAiLanguage(lang);
@@ -236,7 +236,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     children: [
                       CircleAvatar(
                         radius: 54,
-                        backgroundColor: const Color(0xFF6366F1).withOpacity(0.15),
+                        backgroundColor: const Color(0xFF00A896).withOpacity(0.15),
                         backgroundImage: prefs.profileImagePath.isNotEmpty && File(prefs.profileImagePath).existsSync()
                             ? FileImage(File(prefs.profileImagePath))
                             : null,
@@ -244,7 +244,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             ? null
                             : Text(
                                 user.userName.isNotEmpty ? user.userName[0].toUpperCase() : 'U',
-                                style: const TextStyle(color: Color(0xFF6366F1), fontWeight: FontWeight.bold, fontSize: 42),
+                                style: const TextStyle(color: Color(0xFF00A896), fontWeight: FontWeight.bold, fontSize: 42),
                               ),
                       ),
                       Positioned(
@@ -253,7 +253,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(6),
                           decoration: const BoxDecoration(
-                            color: Color(0xFF6366F1),
+                            color: Color(0xFF00A896),
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
@@ -285,7 +285,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ),
                   child: Text(
                     'ID: ${user.employeeId}',
-                    style: const TextStyle(color: Color(0xFF6366F1), fontSize: 11, fontWeight: FontWeight.bold),
+                    style: const TextStyle(color: Color(0xFF00A896), fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -466,7 +466,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 color: const Color(0xFF1D2435),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: const Color(0xFF6366F1), size: 20),
+              child: Icon(icon, color: const Color(0xFF00A896), size: 20),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -513,7 +513,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               color: const Color(0xFF1D2435),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: const Color(0xFF6366F1), size: 20),
+            child: Icon(icon, color: const Color(0xFF00A896), size: 20),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -525,8 +525,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: const Color(0xFF6366F1),
-            activeTrackColor: const Color(0xFF6366F1).withOpacity(0.3),
+            activeColor: const Color(0xFF00A896),
+            activeTrackColor: const Color(0xFF00A896).withOpacity(0.3),
             inactiveThumbColor: Colors.grey.shade400,
             inactiveTrackColor: Colors.white10,
           ),

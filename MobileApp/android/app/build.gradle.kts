@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.callmatrix.call_matrix_mobile"
+    namespace = "com.callalyze.call_alyze_mobile"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -16,7 +16,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.callmatrix.call_matrix_mobile"
+        applicationId = "com.callalyze.call_alyze_mobile"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

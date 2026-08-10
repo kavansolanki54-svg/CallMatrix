@@ -106,7 +106,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               Expanded(child: Text('Sync started — check notification for progress')),
             ],
           ),
-          backgroundColor: const Color(0xFF465FFF),
+          backgroundColor: const Color(0xFF0070F3),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
@@ -127,25 +127,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF465FFF), Color(0xFF7A5AF8)],
-                ),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
-              child: const Center(
-                child: Text(
-                  'CM',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Padding(
+                  padding: const EdgeInsets.all(4.0),
+                  child: Image.asset(
+                    'assets/logo_icon.png',
+                    fit: BoxFit.contain,
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 10),
             const Text(
-              'CallMatrix',
+              'Callalyze',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
           ],
@@ -160,7 +165,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   width: 22, height: 22,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
-                    color: Color(0xFF465FFF),
+                    color: Color(0xFF0070F3),
                   ),
                 ),
               )
@@ -176,7 +181,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         ],
       ),
       body: stats.isLoading
-          ? const Center(child: CircularProgressIndicator(color: Color(0xFF465FFF)))
+          ? const Center(child: CircularProgressIndicator(color: Color(0xFF0070F3)))
           : SingleChildScrollView(
               padding: const EdgeInsets.all(20.0),
               child: Column(
@@ -187,14 +192,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF465FFF), Color(0xFF7A5AF8), Color(0xFF9333EA)],
+                        colors: [Color(0xFF0070F3), Color(0xFF7A5AF8), Color(0xFF9333EA)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF465FFF).withOpacity(0.35),
+                          color: const Color(0xFF0070F3).withOpacity(0.35),
                           blurRadius: 16,
                           offset: const Offset(0, 8),
                         ),
@@ -255,7 +260,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           icon: Icons.phone_in_talk,
                           value: stats.totalCalls.toString(),
                           label: 'Total Calls',
-                          iconColor: const Color(0xFF465FFF),
+                          iconColor: const Color(0xFF0070F3),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -314,10 +319,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF465FFF),
+                        backgroundColor: const Color(0xFF0070F3),
                         foregroundColor: Colors.white,
                         elevation: 2,
-                        shadowColor: const Color(0xFF465FFF).withOpacity(0.4),
+                        shadowColor: const Color(0xFF0070F3).withOpacity(0.4),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),

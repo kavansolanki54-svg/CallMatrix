@@ -69,27 +69,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF465FFF), Color(0xFF7A5AF8)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(18),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF465FFF).withOpacity(0.3),
+                            color: Colors.black.withOpacity(0.2),
                             blurRadius: 16,
                             offset: const Offset(0, 8),
                           ),
                         ],
                       ),
-                      child: const Center(
-                        child: Text(
-                          'CM',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Image.asset(
+                            'assets/logo_icon.png',
+                            fit: BoxFit.contain,
                           ),
                         ),
                       ),
@@ -129,7 +125,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     decoration: InputDecoration(
                       labelText: 'Email Address',
                       labelStyle: TextStyle(color: Colors.blueGrey.shade400),
-                      prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF465FFF)),
+                      prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF0070F3)),
                       filled: true,
                       fillColor: const Color(0xFF1D2939),
                       border: OutlineInputBorder(
@@ -154,7 +150,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     decoration: InputDecoration(
                       labelText: 'Password',
                       labelStyle: TextStyle(color: Colors.blueGrey.shade400),
-                      prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF465FFF)),
+                      prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF0070F3)),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
@@ -184,9 +180,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     child: ElevatedButton(
                       onPressed: authState.isLoading ? null : _submit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF465FFF),
+                        backgroundColor: const Color(0xFF0070F3),
                         foregroundColor: Colors.white,
-                        shadowColor: const Color(0xFF465FFF).withOpacity(0.4),
+                        shadowColor: const Color(0xFF0070F3).withOpacity(0.4),
                         elevation: 4,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(14),

@@ -1,9 +1,9 @@
 -- ====================================================
--- CALLMATRIX ERP + CRM - INDEX CREATION SCRIPTS
+-- CALLALYZE ERP + CRM - INDEX CREATION SCRIPTS
 -- Regular Indexes + Filtered Indexes
 -- ====================================================
 
-USE [CallMatrixDB];
+USE [CallalyzeDB];
 GO
 
 

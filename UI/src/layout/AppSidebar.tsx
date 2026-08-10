@@ -123,16 +123,28 @@ export default function AppSidebar() {
         <Link href="/">
           {isExpanded || isHovered || isMobileOpen ? (
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white font-bold text-xl shadow-md">
-                CM
+              <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shadow-md bg-white">
+                <Image
+                  src="/images/logo/logo-icon.png"
+                  alt="Callalyze Logo"
+                  width={40}
+                  height={40}
+                  className="object-cover"
+                />
               </div>
               <span className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-brand-600 to-indigo-600 dark:from-white dark:to-indigo-400">
-                CallMatrix
+                Callalyze
               </span>
             </div>
           ) : (
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center text-white font-bold text-xl shadow-md">
-              CM
+            <div className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center shadow-md bg-white">
+              <Image
+                src="/images/logo/logo-icon.png"
+                alt="Callalyze Logo"
+                width={40}
+                height={40}
+                className="object-cover"
+              />
             </div>
           )}
         </Link>

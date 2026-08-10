@@ -1,0 +1,6 @@
+@Callalyze_HostAddress = http://localhost:5164
+
+GET {{Callalyze_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

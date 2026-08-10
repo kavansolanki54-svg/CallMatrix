@@ -51,7 +51,7 @@ class AiSummaryModel {
       keyPoints: keyPoints.isEmpty ? ['Discussed operational project updates.'] : keyPoints,
       actionItems: actionItems.isEmpty ? ['Follow up on submitted reports.'] : actionItems,
       sentiment: sentiment,
-      keywords: ['Work Report', 'CallMatrix', 'Client Call'],
+      keywords: ['Work Report', 'Callalyze', 'Client Call'],
       followUps: followUps.isEmpty ? ['Schedule next sync call in 2 days.'] : followUps,
     );
   }
@@ -148,7 +148,7 @@ class _AiSummaryScreenState extends State<AiSummaryScreen> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const CircularProgressIndicator(color: Color(0xFF465FFF)),
+                  const CircularProgressIndicator(color: Color(0xFF0070F3)),
                   const SizedBox(height: 20),
                   Text(
                     'Gemini is analyzing the call...',
@@ -175,7 +175,7 @@ class _AiSummaryScreenState extends State<AiSummaryScreen> {
                         ElevatedButton(
                           onPressed: _generateSummary,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF465FFF),
+                            backgroundColor: const Color(0xFF0070F3),
                             foregroundColor: Colors.white,
                           ),
                           child: const Text('Try Again'),
@@ -312,7 +312,7 @@ class _AiSummaryScreenState extends State<AiSummaryScreen> {
         children: [
           Icon(
             isAction ? Icons.check_box_outlined : Icons.fiber_manual_record,
-            color: const Color(0xFF465FFF),
+            color: const Color(0xFF0070F3),
             size: isAction ? 18 : 8,
           ),
           const SizedBox(width: 10),

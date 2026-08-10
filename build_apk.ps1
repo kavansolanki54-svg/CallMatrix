@@ -1,10 +1,10 @@
-# CallMatrix APK Generation Script
+# Callalyze APK Generation Script
 # This script builds the Flutter release APK and copies it to the root APK directory.
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "=============================================" -ForegroundColor Cyan
-Write-Host "      Building CallMatrix Android APK        " -ForegroundColor Cyan
+Write-Host "      Building Callalyze Android APK        " -ForegroundColor Cyan
 Write-Host "=============================================" -ForegroundColor Cyan
 
 # 1. Resolve Paths
@@ -12,7 +12,7 @@ $WorkspaceRoot = $PSScriptRoot
 $MobileAppDir = Join-Path $WorkspaceRoot "MobileApp"
 $ApkOutputDir = Join-Path $WorkspaceRoot "APK"
 $BuildApkPath = Join-Path $MobileAppDir "build\app\outputs\flutter-apk\app-release.apk"
-$FinalApkPath = Join-Path $ApkOutputDir "CallMatrix.apk"
+$FinalApkPath = Join-Path $ApkOutputDir "Callalyze.apk"
 
 # 2. Check for MobileApp directory
 if (-not (Test-Path $MobileAppDir)) {
@@ -42,7 +42,7 @@ if (-not (Test-Path $ApkOutputDir)) {
 if (Test-Path $BuildApkPath) {
     Copy-Item -Path $BuildApkPath -Destination $FinalApkPath -Force
     Write-Host "`n=============================================" -ForegroundColor Green
-    Write-Host " SUCCESS: CallMatrix APK built successfully!" -ForegroundColor Green
+    Write-Host " SUCCESS: Callalyze APK built successfully!" -ForegroundColor Green
     Write-Host " Location: $FinalApkPath" -ForegroundColor Green
     Write-Host "=============================================" -ForegroundColor Green
 } else {

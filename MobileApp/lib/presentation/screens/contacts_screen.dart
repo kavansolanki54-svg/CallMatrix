@@ -62,7 +62,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
               decoration: InputDecoration(
                 hintText: 'Search contacts...',
                 hintStyle: TextStyle(color: Colors.blueGrey.shade400),
-                prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF465FFF)),
+                prefixIcon: const Icon(Icons.search_rounded, color: Color(0xFF0070F3)),
                 filled: true,
                 fillColor: const Color(0xFF1D2939),
                 border: OutlineInputBorder(
@@ -85,7 +85,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
           // Content
           Expanded(
             child: contactsState.isLoading
-                ? const Center(child: CircularProgressIndicator(color: Color(0xFF465FFF)))
+                ? const Center(child: CircularProgressIndicator(color: Color(0xFF0070F3)))
                 : !contactsState.hasPermission
                     ? EmptyState(
                         icon: Icons.contacts_rounded,
@@ -104,7 +104,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                           )
                         : RefreshIndicator(
                             onRefresh: () => ref.read(contactsProvider.notifier).loadContacts(),
-                            color: const Color(0xFF465FFF),
+                            color: const Color(0xFF0070F3),
                             child: ListView(
                               padding: const EdgeInsets.symmetric(horizontal: 20),
                               children: [
@@ -168,12 +168,12 @@ class _SectionHeader extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: const Color(0xFF465FFF).withOpacity(0.15),
+              color: const Color(0xFF0070F3).withOpacity(0.15),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Text(
               '$count',
-              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF465FFF)),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF0070F3)),
             ),
           ),
         ],
@@ -190,7 +190,7 @@ class _ContactTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final initials = contact.name.isNotEmpty ? contact.name[0].toUpperCase() : '?';
-    final colors = [const Color(0xFF465FFF), Colors.teal, Colors.blue, Colors.orange, Colors.purple];
+    final colors = [const Color(0xFF0070F3), Colors.teal, Colors.blue, Colors.orange, Colors.purple];
     final color = colors[contact.name.hashCode.abs() % colors.length];
 
     return Container(

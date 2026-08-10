@@ -1,9 +1,9 @@
 -- ====================================================
--- CALLMATRIX ERP + CRM - CREATE TABLE SCRIPTS
+-- CALLALYZE ERP + CRM - CREATE TABLE SCRIPTS
 -- All Tables with PKs, FKs, Defaults, Checks, Constraints
 -- ====================================================
 
-USE [CallMatrixDB];
+USE [CallalyzeDB];
 GO
 
 

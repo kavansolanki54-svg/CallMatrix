@@ -1,9 +1,9 @@
 -- ====================================================
--- CALLMATRIX ERP + CRM - STORED PROCEDURES
+-- CALLALYZE ERP + CRM - STORED PROCEDURES
 -- Dynamic queries, Stored Procedures, and TVPs
 -- ====================================================
 
-USE [CallMatrixDB];
+USE [CallalyzeDB];
 GO
 
 -- 1. Get Employee By Email

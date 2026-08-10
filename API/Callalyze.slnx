@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Callalyze.BLL/Callalyze.BLL.csproj" />
+  <Project Path="Callalyze.DAL/Callalyze.DAL.csproj" />
+  <Project Path="Callalyze.DTO/Callalyze.DTO.csproj" />
+  <Project Path="Callalyze.Utilities/Callalyze.Utilities.csproj" />
+  <Project Path="Callalyze/Callalyze.csproj" />
+</Solution>

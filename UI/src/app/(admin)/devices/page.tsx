@@ -50,7 +50,7 @@ export default function DevicesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Device Approval & Security</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">Authorize mobile agent devices registered for CallMatrix call sync</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Authorize mobile agent devices registered for Callalyze call sync</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

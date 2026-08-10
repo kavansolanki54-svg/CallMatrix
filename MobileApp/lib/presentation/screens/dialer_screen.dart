@@ -100,14 +100,14 @@ class _DialerScreenState extends State<DialerScreen> {
               height: 72,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                  colors: [Color(0xFF465FFF), Color(0xFF7A5AF8)],
+                  colors: [Color(0xFF0070F3), Color(0xFF7A5AF8)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF465FFF).withOpacity(0.4),
+                    color: const Color(0xFF0070F3).withOpacity(0.4),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),

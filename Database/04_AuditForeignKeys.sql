@@ -1,5 +1,5 @@
 -- ====================================================
--- CALLMATRIX ERP + CRM - AUDIT FOREIGN KEY SCRIPTS
+-- CALLALYZE ERP + CRM - AUDIT FOREIGN KEY SCRIPTS
 -- CreatedBy / UpdatedBy → EmployeeMaster(EmployeeId)
 -- ====================================================
 -- 
@@ -10,7 +10,7 @@
 --
 -- ====================================================
 
-USE [CallMatrixDB];
+USE [CallalyzeDB];
 GO
 
 

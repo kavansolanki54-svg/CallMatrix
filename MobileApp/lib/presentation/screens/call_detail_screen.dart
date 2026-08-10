@@ -118,7 +118,7 @@ class _CallDetailScreenState extends ConsumerState<CallDetailScreen> {
     final typeColor = widget.callType.toLowerCase() == 'incoming'
         ? Colors.blue
         : widget.callType.toLowerCase() == 'outgoing'
-            ? const Color(0xFF465FFF)
+            ? const Color(0xFF0070F3)
             : Colors.redAccent;
 
     return Scaffold(
@@ -220,7 +220,7 @@ class _CallDetailScreenState extends ConsumerState<CallDetailScreen> {
                       child: _ActionButton(
                         icon: Icons.auto_awesome_rounded,
                         label: 'AI Summary',
-                        color: const Color(0xFF465FFF),
+                        color: const Color(0xFF0070F3),
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
@@ -270,7 +270,7 @@ class _CallDetailScreenState extends ConsumerState<CallDetailScreen> {
                             height: 48,
                             decoration: const BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Color(0xFF465FFF), Color(0xFF7A5AF8)],
+                                colors: [Color(0xFF0070F3), Color(0xFF7A5AF8)],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
                               ),
@@ -297,9 +297,9 @@ class _CallDetailScreenState extends ConsumerState<CallDetailScreen> {
                                 data: SliderThemeData(
                                   trackHeight: 3,
                                   thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                                  activeTrackColor: const Color(0xFF465FFF),
-                                  inactiveTrackColor: const Color(0xFF465FFF).withOpacity(0.15),
-                                  thumbColor: const Color(0xFF465FFF),
+                                  activeTrackColor: const Color(0xFF0070F3),
+                                  inactiveTrackColor: const Color(0xFF0070F3).withOpacity(0.15),
+                                  thumbColor: const Color(0xFF0070F3),
                                   overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
                                 ),
                                 child: Slider(
