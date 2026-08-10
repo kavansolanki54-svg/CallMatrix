@@ -1,6 +1,6 @@
 class ApiConstants {
-  // Read from .env, fallback to https://callalyzeapi.runasp.net
-  static const String baseUrl = 'https://callalyzeapi.runasp.net';
+  // Read from .env, fallback to https://callmatrixapi.runasp.net
+  static const String baseUrl = 'https://callmatrixapi.runasp.net';
 
   // Auth
   static const String login = '/api/Auth/login';
