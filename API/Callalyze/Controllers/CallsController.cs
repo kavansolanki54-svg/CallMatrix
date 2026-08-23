@@ -138,17 +138,17 @@ namespace Callalyze.Controllers
 
         [HttpPost("{callId:int}/summary")]
         [RequirePermission("Call Recordings", "CanView")]
-        public async Task<IActionResult> GetCallRecordingSummary([FromRoute] int callId)
+        public async Task<IActionResult> GetCallRecordingSummary([FromRoute] int callId, [FromQuery] string? language)
         {
-            var result = await _callService.GetCallRecordingSummaryAsync(callId: callId);
+            var result = await _callService.GetCallRecordingSummaryAsync(callId: callId, language: language);
             return StatusCode(result.StatusCode, result);
         }
 
         [HttpPost("recordings/{recordingId:int}/summary")]
         [RequirePermission("Call Recordings", "CanView")]
-        public async Task<IActionResult> GetCallRecordingSummaryByRecording([FromRoute] int recordingId)
+        public async Task<IActionResult> GetCallRecordingSummaryByRecording([FromRoute] int recordingId, [FromQuery] string? language)
         {
-            var result = await _callService.GetCallRecordingSummaryAsync(recordingId: recordingId);
+            var result = await _callService.GetCallRecordingSummaryAsync(recordingId: recordingId, language: language);
             return StatusCode(result.StatusCode, result);
         }
     }

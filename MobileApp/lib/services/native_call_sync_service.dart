@@ -64,6 +64,7 @@ class NativeCallSyncService {
       final prefs = await SharedPreferences.getInstance();
       final customPath = prefs.getString('custom_recording_path') ?? '';
       final userDeviceId = prefs.getInt('user_device_id') ?? 0;
+      final autoRecord = prefs.getBool('auto_record') ?? false;
 
       final now = DateTime.now();
       final todayStart = DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
@@ -119,13 +120,15 @@ class NativeCallSyncService {
             actualSyncedCount = logs.length;
           }
         }
-      } catch (_) {}
+      } catch (e, stackTrace) {
+        await _logSyncError(e, stackTrace);
+      }
 
       final syncedCount = actualSyncedCount > 0 ? actualSyncedCount : logs.length;
 
-      // 3. Upload detected local recording metadata if files exist
-      // Since recording upload requires CallId from the database, we query GET /api/Calls to match synced items
-      try {
+      // 3. Upload detected local recording metadata if files exist (only if auto-record is enabled)
+      if (autoRecord) {
+        try {
         final callsListResp = await dio.get(ApiConstants.callLogsList, queryParameters: {
           'page': 1,
           'pageSize': 50,
@@ -229,14 +232,30 @@ class NativeCallSyncService {
             }
           }
         }
-      } catch (_) {}
+      } catch (e, stackTrace) {
+        await _logSyncError(e, stackTrace);
+      }
+      }
 
       await prefs.setInt('last_sync_time', DateTime.now().millisecondsSinceEpoch);
       return syncedCount;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      await _logSyncError(e, stackTrace);
       return 0;
     } finally {
       _isSyncing = false;
     }
+  }
+
+  static Future<void> _logSyncError(Object error, StackTrace stackTrace) async {
+    try {
+      final dio = ApiClient.instance.dio;
+      await dio.post('/api/Logs/error', data: {
+        'errorMessage': error.toString(),
+        'stackTrace': stackTrace.toString(),
+        'path': 'MobileApp/NativeCallSyncService/runSync',
+        'method': 'POST',
+      });
+    } catch (_) {}
   }
 }

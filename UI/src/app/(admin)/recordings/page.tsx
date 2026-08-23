@@ -702,7 +702,7 @@ export default function RecordingsPage() {
           </div>
           <div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">AI Call Analysis</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Powered by Gemini Developer Suite &bull; Call Quality: <span className="text-emerald-500 font-bold">Good</span></p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Powered by Callalyze AI &bull; Call Quality: <span className="text-emerald-500 font-bold">Good</span></p>
           </div>
         </div>
 
@@ -712,7 +712,7 @@ export default function RecordingsPage() {
               <div className="absolute w-12 h-12 border-4 border-indigo-100 dark:border-indigo-950/50 rounded-full"></div>
               <div className="absolute w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
             </div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 animate-pulse">Gemini is transcribing & analyzing recording...</p>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 animate-pulse">AI is transcribing & analyzing recording...</p>
           </div>
         )}
 

@@ -556,7 +556,7 @@ export default function CallsPage() {
           </div>
           <div>
             <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">AI Call Analysis</h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Powered by Gemini Developer Suite</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Powered by Callalyze AI</p>
           </div>
         </div>
 
@@ -566,7 +566,7 @@ export default function CallsPage() {
               <div className="absolute w-12 h-12 border-4 border-indigo-100 dark:border-indigo-950/50 rounded-full"></div>
               <div className="absolute w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
             </div>
-            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 animate-pulse">Gemini is transcribing & analyzing recording...</p>
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 animate-pulse">AI is transcribing & analyzing recording...</p>
           </div>
         )}
 

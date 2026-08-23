@@ -1,14 +1,13 @@
 package com.callalyze.call_alyze_mobile
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
-import android.speech.RecognizerIntent
-import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.view.Window
@@ -19,14 +18,11 @@ import java.util.*
 
 class CallEndedOverlayActivity : Activity() {
 
-    private var noteEditText: EditText? = null
-    private val SPEECH_REQUEST_CODE = 101
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         requestWindowFeature(Window.FEATURE_NO_TITLE)
-        window.setBackgroundDrawable(ColorDrawable(Color.parseColor("#77000000"))) // Translucent overlay
+        window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT)
         window.setGravity(Gravity.CENTER)
         window.addFlags(
@@ -36,44 +32,65 @@ class CallEndedOverlayActivity : Activity() {
                     WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
         )
 
-        val phoneNumber = intent.getStringExtra("phone_number") ?: "+916353046278"
-        val contactName = intent.getStringExtra("contact_name") ?: "Office Contact"
-        val callFromNumber = intent.getStringExtra("call_from") ?: "+916353036645"
-        val callDuration = intent.getStringExtra("call_duration") ?: "0h 0m 4s"
+        val phoneNumber = intent.getStringExtra("phone_number") ?: "Unknown Number"
+        val contactName = intent.getStringExtra("contact_name") ?: ""
+        val callDuration = intent.getStringExtra("call_duration") ?: "0s"
         val callType = intent.getStringExtra("call_type") ?: "Outgoing"
         val currentTimeStr = intent.getStringExtra("call_time") 
             ?: SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date())
 
-        setContentView(buildLayout(phoneNumber, contactName, callFromNumber, callDuration, currentTimeStr, callType))
+        setContentView(buildLayout(phoneNumber, contactName, callDuration, currentTimeStr, callType))
     }
 
     private fun buildLayout(
         phoneNumber: String,
         contactName: String,
-        callFromNumber: String,
         callDuration: String,
         timeStr: String,
         callType: String
     ): View {
-        val root = FrameLayout(this).apply {
-            setBackgroundColor(Color.parseColor("#B30B0F19")) // Dimmed translucent deep dark background
+        // Read theme settings from Flutter Shared Preferences
+        val prefs = getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
+        val themeStr = prefs.getString("flutter.theme_mode", "system")
+        
+        val isDark = when (themeStr) {
+            "dark" -> true
+            "light" -> false
+            else -> {
+                val currentNightMode = resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+                currentNightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES
+            }
         }
 
-        // Dialog Box Container
+        // Palette definitions
+        val bgOverColor = if (isDark) "#CC0C111D" else "#99475569"
+        val cardBgColor = if (isDark) "#1D2939" else "#FFFFFF"
+        val cardBorderColor = if (isDark) "#334155" else "#E2E8F0"
+        val titleColor = if (isDark) "#FFFFFF" else "#0F172A"
+        val phoneColor = if (isDark) "#94A3B8" else "#475569"
+        val labelColor = if (isDark) "#94A3B8" else "#64748B"
+        val valColor = if (isDark) "#FFFFFF" else "#0F172A"
+        val dividerColor = if (isDark) "#334155" else "#F1F5F9"
+        val primaryColor = "#0070F3"
+
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(Color.parseColor(bgOverColor))
+        }
+
+        // Dialog Box Card Container
         val dialogBox = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dpToPx(28), dpToPx(32), dpToPx(28), dpToPx(32))
+            setPadding(dpToPx(24), dpToPx(24), dpToPx(24), dpToPx(24))
             
-            // Material 3 Dark theme card background: #1A1C1E
             background = createCardDrawable(
-                Color.parseColor("#1A1C1E"), 
-                dpToPx(24).toFloat(), 
-                Color.parseColor("#2D3135") // Subtle border
+                Color.parseColor(cardBgColor), 
+                dpToPx(20).toFloat(), 
+                Color.parseColor(cardBorderColor)
             )
 
             val lp = FrameLayout.LayoutParams(
-                dpToPx(320),
+                dpToPx(300),
                 FrameLayout.LayoutParams.WRAP_CONTENT
             ).apply {
                 gravity = Gravity.CENTER
@@ -81,24 +98,45 @@ class CallEndedOverlayActivity : Activity() {
             layoutParams = lp
         }
 
-        // --- 1. Green Circular Checkmark Icon ---
-        val iconContainer = FrameLayout(this).apply {
-            val size = dpToPx(64)
-            val lp = LinearLayout.LayoutParams(size, size).apply {
+        // Header Title: Callalyze
+        val headerTitle = TextView(this).apply {
+            text = "Callalyze"
+            setTextColor(Color.parseColor(primaryColor))
+            textSize = 12f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
+            gravity = Gravity.CENTER_HORIZONTAL
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
                 setMargins(0, 0, 0, dpToPx(16))
+            }
+            layoutParams = lp
+        }
+        dialogBox.addView(headerTitle)
+
+        // Initials Avatar
+        val displayName = if (contactName.isNotEmpty()) contactName else phoneNumber
+        val initials = if (displayName.isNotEmpty()) displayName[0].toString().uppercase() else "?"
+        
+        val avatarContainer = FrameLayout(this).apply {
+            val size = dpToPx(56)
+            val lp = LinearLayout.LayoutParams(size, size).apply {
+                setMargins(0, 0, 0, dpToPx(12))
             }
             layoutParams = lp
             
             background = GradientDrawable().apply {
                 shape = GradientDrawable.OVAL
-                setColor(Color.parseColor("#1B3D2F")) // Dark green translucent circle
+                setColor(Color.parseColor(if (isDark) "#1E293B" else "#F1F5F9"))
+                setStroke(dpToPx(1), Color.parseColor(primaryColor))
             }
         }
 
-        val checkmark = TextView(this).apply {
-            text = "✓"
-            setTextColor(Color.parseColor("#34D399")) // Material Green/Emerald
-            textSize = 28f
+        val avatarText = TextView(this).apply {
+            text = initials
+            setTextColor(Color.parseColor(primaryColor))
+            textSize = 20f
             typeface = Typeface.DEFAULT_BOLD
             gravity = Gravity.CENTER
             val lp = FrameLayout.LayoutParams(
@@ -107,98 +145,128 @@ class CallEndedOverlayActivity : Activity() {
             )
             layoutParams = lp
         }
-        iconContainer.addView(checkmark)
-        dialogBox.addView(iconContainer)
+        avatarContainer.addView(avatarText)
+        dialogBox.addView(avatarContainer)
 
-        // --- 2. Title "Call Ended" ---
-        val titleTxt = TextView(this).apply {
-            text = "Call Ended"
-            setTextColor(Color.parseColor("#F1F5F9")) // Premium off-white
-            textSize = 22f
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
-            gravity = Gravity.CENTER_HORIZONTAL
-            val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(0, 0, 0, dpToPx(20))
-            }
-            layoutParams = lp
-        }
-        dialogBox.addView(titleTxt)
-
-        // --- 3. Contact Name & Phone Number (Text only, no avatar) ---
-        val displayName = if (contactName.isNotEmpty()) contactName else "Unknown Contact"
+        // Contact Name
         val nameTxt = TextView(this).apply {
-            text = displayName
-            setTextColor(Color.WHITE)
-            textSize = 20f
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            text = if (contactName.isNotEmpty()) contactName else "Unknown Contact"
+            setTextColor(Color.parseColor(titleColor))
+            textSize = 16f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
             gravity = Gravity.CENTER_HORIZONTAL
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
-                setMargins(0, 0, 0, dpToPx(4))
+                setMargins(0, 0, 0, dpToPx(2))
             }
             layoutParams = lp
         }
         dialogBox.addView(nameTxt)
 
+        // Phone Number
         val phoneTxt = TextView(this).apply {
             text = phoneNumber
-            setTextColor(Color.parseColor("#94A3B8")) // Slate gray
-            textSize = 15f
+            setTextColor(Color.parseColor(phoneColor))
+            textSize = 13f
             typeface = Typeface.create("sans-serif", Typeface.NORMAL)
             gravity = Gravity.CENTER_HORIZONTAL
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                setMargins(0, 0, 0, dpToPx(16))
+            }
+            layoutParams = lp
+        }
+        dialogBox.addView(phoneTxt)
+
+        // Divider
+        val div1 = View(this).apply {
+            setBackgroundColor(Color.parseColor(dividerColor))
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(1)
+            ).apply {
+                setMargins(0, 0, 0, dpToPx(12))
+            }
+            layoutParams = lp
+        }
+        dialogBox.addView(div1)
+
+        // Metadata Table
+        val displayDuration = if (callDuration.contains("0h 0m")) callDuration.replace("0h 0m ", "") else callDuration
+        
+        dialogBox.addView(buildDetailRow("Duration", displayDuration, labelColor, valColor))
+        dialogBox.addView(buildDetailSpacer())
+        dialogBox.addView(buildDetailRow("Time", timeStr, labelColor, valColor))
+        dialogBox.addView(buildDetailSpacer())
+
+        val isMissed = callType.lowercase(Locale.getDefault()) == "missed"
+        val statusText = if (isMissed) "Missed" else "Answered"
+        val statusColorStr = if (isMissed) "#EF4444" else (if (isDark) "#38BDF8" else "#0070F3")
+        val badgeBgColorStr = if (isMissed) "#26EF4444" else (if (isDark) "#1A38BDF8" else "#1A0070F3")
+
+        val typeRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply {
                 setMargins(0, 0, 0, dpToPx(20))
             }
             layoutParams = lp
         }
-        dialogBox.addView(phoneTxt)
 
-        // --- 4. Call Duration & Call End Time (Clean typography, no icons) ---
-        val infoTxt = TextView(this).apply {
-            val displayDuration = if (callDuration.contains("0h 0m")) callDuration.replace("0h 0m ", "") else callDuration
-            text = "Duration: $displayDuration  •  Ended at $timeStr"
-            setTextColor(Color.parseColor("#64748B")) // Dimmer slate gray
-            textSize = 13.5f
-            typeface = Typeface.create("sans-serif", Typeface.NORMAL)
-            gravity = Gravity.CENTER_HORIZONTAL
-            val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply {
-                setMargins(0, 0, 0, dpToPx(32))
-            }
+        val typeLabel = TextView(this).apply {
+            text = "Status"
+            setTextColor(Color.parseColor(labelColor))
+            textSize = 13f
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+            val lp = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
             layoutParams = lp
         }
-        dialogBox.addView(infoTxt)
+        typeRow.addView(typeLabel)
 
-        // --- 5. Full-Width Green "Done" Button with Rounded Corners ---
+        val typeBadgeContainer = FrameLayout(this).apply {
+            background = GradientDrawable().apply {
+                cornerRadius = dpToPx(6).toFloat()
+                setColor(Color.parseColor(badgeBgColorStr))
+            }
+            setPadding(dpToPx(8), dpToPx(4), dpToPx(8), dpToPx(4))
+        }
+
+        val typeBadgeText = TextView(this).apply {
+            text = statusText
+            setTextColor(Color.parseColor(statusColorStr))
+            textSize = 11f
+            typeface = Typeface.create("sans-serif", Typeface.BOLD)
+        }
+        typeBadgeContainer.addView(typeBadgeText)
+        typeRow.addView(typeBadgeContainer)
+        dialogBox.addView(typeRow)
+
+        // Action Button: Save & Close
         val doneBtn = Button(this).apply {
-            text = "Done"
-            setTextColor(Color.parseColor("#0F172A")) // Slate 900
-            textSize = 15f
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            text = "Close"
+            setTextColor(Color.WHITE)
+            textSize = 14f
+            typeface = Typeface.create("sans-serif-medium", Typeface.BOLD)
             isAllCaps = false
             
             background = GradientDrawable().apply {
-                cornerRadius = dpToPx(28).toFloat()
-                setColor(Color.parseColor("#10B981")) // Material Green/Emerald
+                cornerRadius = dpToPx(24).toFloat()
+                setColor(Color.parseColor(primaryColor))
             }
 
             setOnClickListener {
-                saveNoteAndClose("Done")
+                saveNoteAndClose()
             }
 
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                dpToPx(50)
+                dpToPx(44)
             )
             layoutParams = lp
         }
@@ -206,6 +274,45 @@ class CallEndedOverlayActivity : Activity() {
 
         root.addView(dialogBox)
         return root
+    }
+
+    private fun buildDetailRow(label: String, value: String, labelColor: String, valColor: String): View {
+        return LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            layoutParams = lp
+
+            val labelTxt = TextView(context).apply {
+                text = label
+                setTextColor(Color.parseColor(labelColor))
+                textSize = 13f
+                typeface = Typeface.create("sans-serif", Typeface.BOLD)
+                val lp2 = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                layoutParams = lp2
+            }
+            addView(labelTxt)
+
+            val valTxt = TextView(context).apply {
+                text = value
+                setTextColor(Color.parseColor(valColor))
+                textSize = 13f
+                typeface = Typeface.create("sans-serif", Typeface.BOLD)
+            }
+            addView(valTxt)
+        }
+    }
+
+    private fun buildDetailSpacer(): View {
+        return View(this).apply {
+            val lp = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                dpToPx(10)
+            )
+            layoutParams = lp
+        }
     }
 
     private fun dpToPx(dp: Int): Int {
@@ -221,69 +328,10 @@ class CallEndedOverlayActivity : Activity() {
         }
     }
 
-    private fun createActionButton(label: String, onClick: () -> Unit): Button {
-        return Button(this).apply {
-            text = label
-            setTextColor(Color.WHITE)
-            textSize = 11f
-            typeface = Typeface.DEFAULT_BOLD
-            background = createCardDrawable(Color.parseColor("#2563EB"), dpToPx(10).toFloat(), Color.TRANSPARENT)
-            setPadding(dpToPx(4), dpToPx(8), dpToPx(4), dpToPx(8))
-            isAllCaps = false
-            setOnClickListener { onClick() }
-            val lp = LinearLayout.LayoutParams(0, dpToPx(44), 1f).apply {
-                setMargins(dpToPx(3), 0, dpToPx(3), 0)
-            }
-            layoutParams = lp
-        }
-    }
-
-    private fun triggerSpeechToText() {
-        try {
-            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
-                putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak call note...")
-            }
-            startActivityForResult(intent, SPEECH_REQUEST_CODE)
-        } catch (e: Exception) {}
-    }
-
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == SPEECH_REQUEST_CODE && resultCode == RESULT_OK && data != null) {
-            val results = data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
-            if (!results.isNullOrEmpty()) {
-                val currentText = noteEditText?.text?.toString() ?: ""
-                val spokenText = results[0]
-                noteEditText?.setText(if (currentText.isEmpty()) spokenText else "$currentText $spokenText")
-            }
-        }
-    }
-
-    private fun saveNoteAndClose(actionType: String) {
+    private fun saveNoteAndClose() {
         val phoneNumber = intent.getStringExtra("phone_number") ?: ""
-        // Trigger background REST sync silently on separate thread
-        triggerBackgroundSync(phoneNumber)
-        finish()
-    }
-
-    private fun triggerMainActivitySync() {
-        try {
-            val phoneNumber = intent.getStringExtra("phone_number") ?: ""
-            val launchIntent = Intent(this, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                putExtra("call_ended", true)
-                putExtra("phone_number", phoneNumber)
-            }
-            startActivity(launchIntent)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun triggerBackgroundSync(targetPhone: String) {
-        // Delegate to the foreground service which handles sync with progress notification
+        // Trigger background sync foreground service
         CallSyncForegroundService.start(this)
+        finish()
     }
 }

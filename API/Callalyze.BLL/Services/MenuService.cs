@@ -69,7 +69,7 @@ namespace Callalyze.BLL.Services
                         CanApprove = perm.CanApprove,
                         CanAssign = perm.CanAssign
                     }
-                    : null),
+                    : new MenuPermissionDto()),
                 Children = allMenus
                     .Where(m => m.ParentId == menu.MenuId)
                     .Select(m => MapToTreeNode(m, allMenus, permDict, isTenant))

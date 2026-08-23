@@ -33,9 +33,12 @@ class _DialerScreenState extends State<DialerScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0C111D),
       appBar: AppBar(
-        title: const Text('Dial', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF1D2939),
-        foregroundColor: Colors.white,
+        elevation: 0,
+        backgroundColor: const Color(0xFF0C111D),
+        title: const Text(
+          'Dialer',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white),
+        ),
       ),
       body: Column(
         children: [
@@ -49,14 +52,14 @@ class _DialerScreenState extends State<DialerScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    _number.isEmpty ? 'Enter number' : _number,
+                    _number.isEmpty ? 'Enter phone number' : _number,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: _number.length > 12 ? 28 : 36,
+                      fontSize: _number.length > 12 ? 26 : 34,
                       fontWeight: FontWeight.w300,
-                      letterSpacing: 2,
+                      letterSpacing: 1.5,
                       color: _number.isEmpty
-                          ? Colors.blueGrey.shade400.withOpacity(0.5)
+                          ? Colors.blueGrey.shade400.withOpacity(0.4)
                           : Colors.white,
                     ),
                   ),
@@ -65,8 +68,19 @@ class _DialerScreenState extends State<DialerScreen> {
                   GestureDetector(
                     onTap: _backspace,
                     onLongPress: () => setState(() => _number = ''),
-                    child: Icon(Icons.backspace_outlined,
-                        color: Colors.blueGrey.shade400, size: 22),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1D2939),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFF334155).withOpacity(0.3)),
+                      ),
+                      child: Icon(
+                        Icons.backspace_outlined,
+                        color: Colors.blueGrey.shade300,
+                        size: 20,
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -80,17 +94,17 @@ class _DialerScreenState extends State<DialerScreen> {
             child: Column(
               children: [
                 _buildRow(['1', '2', '3']),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 _buildRow(['4', '5', '6']),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 _buildRow(['7', '8', '9']),
-                const SizedBox(height: 16),
+                const SizedBox(height: 18),
                 _buildRow(['*', '0', '#']),
               ],
             ),
-          ).animate().fadeIn(delay: 200.ms, duration: 400.ms).slideY(begin: 0.05),
+          ).animate().fadeIn(delay: 150.ms, duration: 400.ms).slideY(begin: 0.05),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 36),
 
           // Call button
           GestureDetector(
@@ -107,15 +121,15 @@ class _DialerScreenState extends State<DialerScreen> {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFF0070F3).withOpacity(0.4),
+                    color: const Color(0xFF0070F3).withOpacity(0.35),
                     blurRadius: 20,
                     offset: const Offset(0, 8),
                   ),
                 ],
               ),
-              child: const Icon(Icons.call_rounded, color: Colors.white, size: 32),
+              child: const Icon(Icons.phone_rounded, color: Colors.white, size: 30),
             ),
-          ).animate(delay: 400.ms).scale(duration: 400.ms, curve: Curves.easeOutBack),
+          ).animate(delay: 300.ms).scale(duration: 400.ms, curve: Curves.easeOutBack),
 
           const Spacer(flex: 2),
         ],
@@ -156,13 +170,13 @@ class _DialButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 76,
-        height: 76,
+        width: 74,
+        height: 74,
         decoration: BoxDecoration(
           color: const Color(0xFF1D2939),
           shape: BoxShape.circle,
           border: Border.all(
-            color: Colors.white.withOpacity(0.06),
+            color: const Color(0xFF334155).withOpacity(0.3),
           ),
         ),
         child: Column(
@@ -171,21 +185,23 @@ class _DialButton extends StatelessWidget {
             Text(
               digit,
               style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w400,
+                fontSize: 26,
+                fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
-            if (subtitle != null)
+            if (subtitle != null) ...[
+              const SizedBox(height: 2),
               Text(
                 subtitle!,
                 style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 2,
+                  fontSize: 8,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.5,
                   color: Colors.blueGrey.shade400,
                 ),
               ),
+            ],
           ],
         ),
       ),

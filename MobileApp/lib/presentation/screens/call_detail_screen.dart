@@ -98,6 +98,7 @@ class _CallDetailScreenState extends ConsumerState<CallDetailScreen> {
           SnackBar(
             content: Text('Error playing recording: $e'),
             backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -115,327 +116,335 @@ class _CallDetailScreenState extends ConsumerState<CallDetailScreen> {
     final name = widget.contactName.isNotEmpty ? widget.contactName : widget.phoneNumber;
     final initials = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
-    final typeColor = widget.callType.toLowerCase() == 'incoming'
-        ? Colors.blue
-        : widget.callType.toLowerCase() == 'outgoing'
-            ? const Color(0xFF0070F3)
-            : Colors.redAccent;
+    final isMissed = widget.callType.toLowerCase() == 'missed';
+    final statusText = isMissed ? 'Missed' : 'Answered';
+    final statusColor = isMissed ? const Color(0xFFEF4444) : const Color(0xFF10B981);
 
     return Scaffold(
       backgroundColor: const Color(0xFF0C111D),
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 240,
-            pinned: true,
-            backgroundColor: const Color(0xFF1D2939),
-            foregroundColor: Colors.white,
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0xFF1D2939),
-                      Color(0xFF0C111D),
-                    ],
-                  ),
-                ),
-                child: SafeArea(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const SizedBox(height: 32),
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(colors: [typeColor, typeColor.withOpacity(0.6)]),
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(color: typeColor.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8)),
-                          ],
-                        ),
-                        child: Center(
-                          child: Text(initials, style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.w700)),
-                        ),
-                      ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
-                      const SizedBox(height: 14),
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        widget.phoneNumber,
-                        style: TextStyle(fontSize: 15, color: Colors.blueGrey.shade300),
-                      ),
-                    ],
-                  ),
-                ),
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: const Color(0xFF0C111D),
+        title: const Text(
+          'Call Details',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+          onPressed: () => Navigator.pop(context),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Header Identity Card
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1D2939),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF334155).withOpacity(0.3)),
               ),
-            ),
-          ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: const Color(0xFF0070F3).withOpacity(0.15),
+                    child: Text(
+                      initials,
+                      style: const TextStyle(
+                        color: Color(0xFF38bdf8),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.phoneNumber,
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        if (widget.contactName.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.contactName,
+                            style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 13),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: statusColor.withOpacity(0.3)),
+                    ),
+                    child: Text(
+                      statusText,
+                      style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+            ).animate().fadeIn().slideY(begin: 0.05),
 
-          SliverPadding(
-            padding: const EdgeInsets.all(20),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                _InfoCard(children: [
-                  _InfoRow(label: 'Type', value: widget.callType, icon: Icons.call_rounded, color: typeColor),
-                  const Divider(height: 20, color: Colors.white10),
-                  _InfoRow(label: 'Date', value: Formatters.dateTime(widget.startTime), icon: Icons.calendar_today_rounded, color: Colors.blue),
-                  const Divider(height: 20, color: Colors.white10),
-                  _InfoRow(label: 'Duration', value: Formatters.duration(widget.duration), icon: Icons.timer_rounded, color: Colors.teal),
-                ]).animate(delay: 100.ms).fadeIn().slideY(begin: 0.05),
+            const SizedBox(height: 16),
 
-                const SizedBox(height: 16),
+            // Call info key-value card
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1D2939),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF334155).withOpacity(0.3)),
+              ),
+              child: Column(
+                children: [
+                  _buildDetailRow('Time', Formatters.dateTime(widget.startTime)),
+                  Divider(color: const Color(0xFF334155).withOpacity(0.2), height: 24),
+                  _buildDetailRow('Duration', Formatters.duration(widget.duration)),
+                  Divider(color: const Color(0xFF334155).withOpacity(0.2), height: 24),
+                  _buildDetailRow('Source', 'Mumbai, India'),
+                  Divider(color: const Color(0xFF334155).withOpacity(0.2), height: 24),
+                  _buildDetailRow('Assigned To', 'Sales Team'),
+                ],
+              ),
+            ).animate(delay: 100.ms).fadeIn().slideY(begin: 0.05),
 
-                Row(
+            const SizedBox(height: 16),
+
+            // Audio Player Section
+            if (widget.hasRecording && widget.recordingPath != null) ...[
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1D2939),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF334155).withOpacity(0.3)),
+                ),
+                child: Row(
                   children: [
-                    Expanded(
-                      child: _ActionButton(
-                        icon: Icons.call_rounded,
-                        label: 'Call',
-                        color: Colors.green,
-                        onTap: () => launchUrl(Uri.parse('tel:${widget.phoneNumber}')),
+                    GestureDetector(
+                      onTap: _isLoadingRecording ? null : _playRecording,
+                      child: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF0070F3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: _isLoadingRecording
+                            ? const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : Icon(
+                                _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                                color: Colors.white,
+                                size: 24,
+                              ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: _ActionButton(
-                        icon: Icons.message_rounded,
-                        label: 'Message',
-                        color: Colors.blue,
-                        onTap: () => launchUrl(Uri.parse('sms:${widget.phoneNumber}')),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _ActionButton(
-                        icon: Icons.auto_awesome_rounded,
-                        label: 'AI Summary',
-                        color: const Color(0xFF0070F3),
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                               builder: (_) => AiSummaryScreen(
-                                 contactName: name,
-                                 phoneNumber: widget.phoneNumber,
-                                 transcript: 'Call duration ${widget.duration} seconds on ${widget.startTime}.',
-                                 callId: widget.callLogId,
-                               ),
+                      child: Column(
+                        children: [
+                          SliderTheme(
+                            data: SliderThemeData(
+                              trackHeight: 3,
+                              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                              activeTrackColor: const Color(0xFF0070F3),
+                              inactiveTrackColor: const Color(0xFF334155),
+                              thumbColor: const Color(0xFF0070F3),
+                              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
                             ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _ActionButton(
-                        icon: Icons.share_rounded,
-                        label: 'Share',
-                        color: const Color(0xFF7A5AF8),
-                        onTap: () => Share.share('Call with $name\n${widget.phoneNumber}\n${Formatters.dateTime(widget.startTime)}\nDuration: ${Formatters.duration(widget.duration)}'),
+                            child: Slider(
+                              value: _currentPosition.inMilliseconds.toDouble(),
+                              max: _totalDuration.inMilliseconds.toDouble().clamp(1, double.infinity),
+                              onChanged: _seekTo,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  Formatters.timerDuration(_currentPosition.inSeconds),
+                                  style: TextStyle(fontSize: 10, color: Colors.blueGrey.shade400, fontWeight: FontWeight.bold),
+                                ),
+                                Text(
+                                  Formatters.timerDuration(_totalDuration.inSeconds),
+                                  style: TextStyle(fontSize: 10, color: Colors.blueGrey.shade400, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
-                ).animate(delay: 200.ms).fadeIn(),
+                ),
+              ).animate(delay: 200.ms).fadeIn().slideY(begin: 0.05),
+              const SizedBox(height: 16),
+            ],
 
-                const SizedBox(height: 20),
-
-                if (widget.hasRecording && widget.recordingPath != null) ...[
+            // Add Tags Section
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1D2939),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF334155).withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    'RECORDING',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                      color: Colors.blueGrey.shade300,
-                    ),
+                    'Add Tags',
+                    style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _buildPillTag('Follow up'),
+                      const SizedBox(width: 8),
+                      _buildPillTag('Interested'),
+                    ],
+                  ),
+                ],
+              ),
+            ).animate(delay: 250.ms).fadeIn().slideY(begin: 0.05),
+
+            const SizedBox(height: 16),
+
+            // Add Notes Section
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1D2939),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFF334155).withOpacity(0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Add Notes',
+                    style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
-                  _InfoCard(children: [
-                    Row(
-                      children: [
-                        GestureDetector(
-                          onTap: _isLoadingRecording ? null : _playRecording,
-                          child: Container(
-                            width: 48,
-                            height: 48,
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Color(0xFF0070F3), Color(0xFF7A5AF8)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              shape: BoxShape.circle,
-                            ),
-                            child: _isLoadingRecording
-                                ? const Padding(
-                                    padding: EdgeInsets.all(12),
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                  )
-                                : Icon(
-                                    _isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                                    color: Colors.white,
-                                    size: 28,
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SliderTheme(
-                                data: SliderThemeData(
-                                  trackHeight: 3,
-                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-                                  activeTrackColor: const Color(0xFF0070F3),
-                                  inactiveTrackColor: const Color(0xFF0070F3).withOpacity(0.15),
-                                  thumbColor: const Color(0xFF0070F3),
-                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                                ),
-                                child: Slider(
-                                  value: _currentPosition.inMilliseconds.toDouble(),
-                                  max: _totalDuration.inMilliseconds.toDouble().clamp(1, double.infinity),
-                                  onChanged: _seekTo,
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      Formatters.timerDuration(_currentPosition.inSeconds),
-                                      style: TextStyle(fontSize: 11, color: Colors.blueGrey.shade300),
-                                    ),
-                                    Text(
-                                      Formatters.timerDuration(_totalDuration.inSeconds),
-                                      style: TextStyle(fontSize: 11, color: Colors.blueGrey.shade300),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Recording path: ${widget.recordingPath}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.blueGrey.shade400,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    ),
-                  ]).animate(delay: 300.ms).fadeIn().slideY(begin: 0.05),
-                ] else ...[
-                  _InfoCard(children: [
-                    Row(
-                      children: [
-                        Icon(Icons.mic_off_rounded, color: Colors.blueGrey.shade400, size: 22),
-                        const SizedBox(width: 12),
-                        Text(
-                          'No recording available',
-                          style: TextStyle(fontSize: 14, color: Colors.blueGrey.shade300),
-                        ),
-                      ],
-                    ),
-                  ]).animate(delay: 300.ms).fadeIn(),
+                  Text(
+                    'Call went well. Will follow up tomorrow.',
+                    style: TextStyle(color: Colors.blueGrey.shade200, fontSize: 13, height: 1.4),
+                  ),
                 ],
+              ),
+            ).animate(delay: 300.ms).fadeIn().slideY(begin: 0.05),
 
-                const SizedBox(height: 40),
-              ]),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+            const SizedBox(height: 24),
 
-class _InfoCard extends StatelessWidget {
-  final List<Widget> children;
-  const _InfoCard({required this.children});
+            // Action Items bottom row
+            Row(
+              children: [
+                Expanded(
+                  child: _buildBottomActionButton(Icons.phone_rounded, 'Call', () {
+                    launchUrl(Uri.parse('tel:${widget.phoneNumber}'));
+                  }),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildBottomActionButton(Icons.message_rounded, 'Message', () {
+                    launchUrl(Uri.parse('sms:${widget.phoneNumber}'));
+                  }),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildBottomActionButton(Icons.edit_note_rounded, 'Add Note', () {}),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildBottomActionButton(Icons.auto_awesome_rounded, 'AI Summary', () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AiSummaryScreen(
+                          contactName: name,
+                          phoneNumber: widget.phoneNumber,
+                          transcript: 'Call duration ${widget.duration} seconds on ${widget.startTime}.',
+                          callId: widget.callLogId,
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ],
+            ).animate(delay: 350.ms).fadeIn().slideY(begin: 0.05),
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1D2939),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
-    );
-  }
-}
-
-class _InfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-  const _InfoRow({required this.label, required this.value, required this.icon, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-          child: Icon(icon, color: color, size: 18),
+            const SizedBox(height: 24),
+          ],
         ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: TextStyle(fontSize: 11, color: Colors.blueGrey.shade300)),
-              const SizedBox(height: 2),
-              Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
-            ],
-          ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 13, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          value,
+          style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
         ),
       ],
     );
   }
-}
 
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  const _ActionButton({required this.icon, required this.label, required this.color, required this.onTap});
+  Widget _buildPillTag(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0C111D),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFF334155).withOpacity(0.3)),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildBottomActionButton(IconData icon, String label, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.2)),
+          color: const Color(0xFF1D2939),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF334155).withOpacity(0.3)),
         ),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 22),
+            Icon(icon, color: const Color(0xFF38bdf8), size: 20),
             const SizedBox(height: 4),
-            Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: color)),
+            Text(
+              label,
+              style: TextStyle(color: Colors.blueGrey.shade300, fontSize: 10, fontWeight: FontWeight.bold),
+            ),
           ],
         ),
       ),

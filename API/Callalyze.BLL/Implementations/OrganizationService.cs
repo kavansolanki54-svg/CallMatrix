@@ -28,7 +28,7 @@ namespace Callalyze.BLL.Implementations
 
                 if (!string.IsNullOrWhiteSpace(searchTerm))
                 {
-                    query = query.Where(b => b.BranchName.Contains(searchTerm) || b.BranchCode.Contains(searchTerm) || b.City.Contains(searchTerm));
+                    query = query.Where(b => b.BranchName.Contains(searchTerm) || b.BranchCode!.Contains(searchTerm) || b.City!.Contains(searchTerm));
                 }
 
                 var branches = await query.Select(b => new BranchResponse
@@ -189,7 +189,7 @@ namespace Callalyze.BLL.Implementations
 
                 if (!string.IsNullOrWhiteSpace(searchTerm))
                 {
-                    query = query.Where(d => d.DepartmentName.Contains(searchTerm) || d.DepartmentCode.Contains(searchTerm));
+                    query = query.Where(d => d.DepartmentName.Contains(searchTerm) || d.DepartmentCode!.Contains(searchTerm));
                 }
 
                 var departments = await query.Select(d => new DepartmentResponse

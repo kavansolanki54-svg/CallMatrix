@@ -63,106 +63,130 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // App logo
+                  // App logo icon (C logo matching Callalyze mockup)
                   Center(
                     child: Container(
-                      width: 64,
-                      height: 64,
+                      width: 72,
+                      height: 72,
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF0070F3), Color(0xFF7A5AF8)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(22),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 16,
+                            color: const Color(0xFF0070F3).withOpacity(0.3),
+                            blurRadius: 20,
                             offset: const Offset(0, 8),
                           ),
                         ],
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Image.asset(
-                            'assets/logo_icon.png',
-                            fit: BoxFit.contain,
+                      child: const Center(
+                        child: Text(
+                          'C',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 38,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: 'Outfit',
                           ),
                         ),
                       ),
                     ),
-                  ).animate().scale(duration: 400.ms, curve: Curves.easeOutBack),
+                  ).animate().scale(duration: 450.ms, curve: Curves.easeOutBack),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
                   const Text(
-                    'Welcome back',
+                    'Callalyze',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5,
                       color: Colors.white,
                     ),
                   ).animate(delay: 100.ms).fadeIn(),
 
+                  const SizedBox(height: 32),
+
+                  const Text(
+                    'Welcome Back 👋',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ).animate(delay: 150.ms).fadeIn(),
+
                   const SizedBox(height: 6),
 
                   Text(
-                    'Sign in to access your calling dashboard',
-                    textAlign: TextAlign.center,
+                    'Login to your account',
                     style: TextStyle(
                       fontSize: 14,
-                      color: Colors.blueGrey.shade300,
+                      color: Colors.blueGrey.shade400,
                     ),
                   ).animate(delay: 200.ms).fadeIn(),
 
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 24),
 
-                  // Email Field
+                  // Email/Mobile input field
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
                     decoration: InputDecoration(
-                      labelText: 'Email Address',
-                      labelStyle: TextStyle(color: Colors.blueGrey.shade400),
-                      prefixIcon: const Icon(Icons.email_outlined, color: Color(0xFF0070F3)),
+                      labelText: 'Email / Mobile Number',
+                      labelStyle: TextStyle(color: Colors.blueGrey.shade400, fontSize: 13),
                       filled: true,
                       fillColor: const Color(0xFF1D2939),
-                      border: OutlineInputBorder(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                      enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: const Color(0xFF334155).withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFF0070F3)),
                       ),
                     ),
                     validator: (val) {
-                      if (val == null || val.isEmpty) return 'Email is required';
-                      if (!val.contains('@')) return 'Enter a valid email';
+                      if (val == null || val.isEmpty) return 'Email or Mobile Number is required';
                       return null;
                     },
-                  ).animate(delay: 300.ms).fadeIn().slideX(begin: -0.05),
+                  ).animate(delay: 250.ms).fadeIn().slideY(begin: 0.05),
 
                   const SizedBox(height: 16),
 
-                  // Password Field
+                  // Password input field
                   TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    style: const TextStyle(color: Colors.white),
+                    style: const TextStyle(color: Colors.white, fontSize: 14),
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      labelStyle: TextStyle(color: Colors.blueGrey.shade400),
-                      prefixIcon: const Icon(Icons.lock_outline_rounded, color: Color(0xFF0070F3)),
+                      labelStyle: TextStyle(color: Colors.blueGrey.shade400, fontSize: 13),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
                           color: Colors.blueGrey.shade400,
+                          size: 20,
                         ),
                         onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                       ),
                       filled: true,
                       fillColor: const Color(0xFF1D2939),
-                      border: OutlineInputBorder(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                      enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
+                        borderSide: BorderSide(color: const Color(0xFF334155).withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: const BorderSide(color: Color(0xFF0070F3)),
                       ),
                     ),
                     validator: (val) {
@@ -170,32 +194,66 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       if (val.length < 6) return 'Password must be at least 6 characters';
                       return null;
                     },
-                  ).animate(delay: 400.ms).fadeIn().slideX(begin: 0.05),
+                  ).animate(delay: 300.ms).fadeIn().slideY(begin: 0.05),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 12),
 
-                  // Submit button
-                  SizedBox(
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: authState.isLoading ? null : _submit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0070F3),
-                        foregroundColor: Colors.white,
-                        shadowColor: const Color(0xFF0070F3).withOpacity(0.4),
-                        elevation: 4,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
+                  // Forgot Password?
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {},
+                      child: const Text(
+                        'Forgot Password?',
+                        style: TextStyle(
+                          color: Color(0xFF38BDF8),
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      child: authState.isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Text(
-                              'Sign In',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                            ),
                     ),
-                  ).animate(delay: 500.ms).fadeIn().scale(),
+                  ).animate(delay: 350.ms).fadeIn(),
+
+                  const SizedBox(height: 16),
+
+                  // Login Button
+                  GestureDetector(
+                    onTap: authState.isLoading ? null : _submit,
+                    child: Container(
+                      height: 52,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF0070F3), Color(0xFF0070F3)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF0070F3).withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: authState.isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              )
+                            : const Text(
+                                'Login',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ).animate(delay: 400.ms).fadeIn().scale(),
                 ],
               ),
             ),

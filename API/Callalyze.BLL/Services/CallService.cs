@@ -523,7 +523,7 @@ namespace Callalyze.BLL.Services
             return ApiResponse<PaginatedResponse<CallRecordingResponse>>.Ok(paginated, "Recordings retrieved successfully");
         }
 
-        public async Task<ApiResponse<string>> GetCallRecordingSummaryAsync(int? callId = null, int? recordingId = null)
+        public async Task<ApiResponse<string>> GetCallRecordingSummaryAsync(int? callId = null, int? recordingId = null, string? language = null)
         {
             try
             {
@@ -595,11 +595,11 @@ namespace Callalyze.BLL.Services
                 }
 
                 // 5. Read the audio bytes and convert to Base64
-                byte[] audioBytes = await System.IO.File.ReadAllBytesAsync(recording.FilePath);
+                byte[] audioBytes = await System.IO.File.ReadAllBytesAsync(recording.FilePath!);
                 string base64Audio = Convert.ToBase64String(audioBytes);
 
                 // 6. Map file extension to standard MIME type
-                string extension = System.IO.Path.GetExtension(recording.FilePath).ToLower();
+                string extension = System.IO.Path.GetExtension(recording.FilePath!).ToLower();
                 string mimeType = extension switch
                 {
                     ".wav" => "audio/wav",
@@ -635,7 +635,7 @@ namespace Callalyze.BLL.Services
                                     },
                                     new
                                     {
-                                        text = "You are an AI assistant analyzing a call recording. Listen to the audio and provide:\n" +
+                                        text = $"You are an AI assistant analyzing a call recording. Listen to the audio and provide the output in {language ?? "English"}:\n" +
                                                "1. Short Summary (2-3 sentences)\n" +
                                                "2. Key Discussion Points (bullet points starting with -)\n" +
                                                "3. Action Items (bullet points starting with -)\n" +

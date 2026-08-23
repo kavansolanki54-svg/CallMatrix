@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'presentation/screens/login_screen.dart';
 import 'presentation/screens/main_container.dart';
+import 'presentation/screens/splash_screen.dart';
 import 'presentation/providers/auth_provider.dart';
 import 'core/storage/preferences_service.dart';
 
@@ -70,11 +72,33 @@ class _CallalyzeAppState extends ConsumerState<CallalyzeApp> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final prefs = ref.watch(preferencesProvider);
+
+    final lightTheme = ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: const Color(0xFFF9FAFB),
+      textTheme: GoogleFonts.outfitTextTheme(ThemeData.light().textTheme),
+      colorScheme: const ColorScheme.light(
+        primary: Color(0xFF0070F3),
+        secondary: Color(0xFF10B981),
+        surface: Colors.white,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.white,
+        foregroundColor: Color(0xFF0C111D),
+        elevation: 0,
+      ),
+      dialogTheme: const DialogThemeData(
+        backgroundColor: Colors.white,
+      ),
+    );
 
     final darkTheme = ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: const Color(0xFF0C111D),
+      textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
       colorScheme: const ColorScheme.dark(
         primary: Color(0xFF0070F3),
         secondary: Color(0xFF10B981),
@@ -93,15 +117,11 @@ class _CallalyzeAppState extends ConsumerState<CallalyzeApp> {
     return MaterialApp(
       title: 'Callalyze Mobile',
       debugShowCheckedModeBanner: false,
-      theme: darkTheme, // Standardized dark executive slate theme
-      themeMode: ThemeMode.dark,
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: prefs.themeMode,
       home: authState.isInitializing
-          ? const Scaffold(
-              backgroundColor: Color(0xFF0C111D),
-              body: Center(
-                child: CircularProgressIndicator(color: Color(0xFF0070F3)),
-              ),
-            )
+          ? const SplashScreen()
           : authState.isAuthenticated
               ? MainContainer(
                   onLogout: () => ref.read(authProvider.notifier).logout(),

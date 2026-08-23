@@ -3,6 +3,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/gemini_service.dart';
 import '../../core/network/api_client.dart';
 import '../../core/constants/api_constants.dart';
@@ -97,8 +98,14 @@ class _AiSummaryScreenState extends State<AiSummaryScreen> {
         throw Exception("Call is not synchronized with the server. Cannot generate AI summary.");
       }
 
+      final prefs = await SharedPreferences.getInstance();
+      final lang = prefs.getString('ai_language') ?? 'English';
+
       final dio = ApiClient.instance.dio;
-      final res = await dio.post(ApiConstants.callSummary(widget.callId!));
+      final res = await dio.post(
+        ApiConstants.callSummary(widget.callId!),
+        queryParameters: {'language': lang},
+      );
       final resData = res.data;
       final success = resData != null && (resData['success'] == true || resData['isSuccess'] == true);
       
@@ -151,7 +158,7 @@ class _AiSummaryScreenState extends State<AiSummaryScreen> {
                   const CircularProgressIndicator(color: Color(0xFF0070F3)),
                   const SizedBox(height: 20),
                   Text(
-                    'Gemini is analyzing the call...',
+                    'AI is analyzing the call...',
                     style: TextStyle(color: Colors.blueGrey.shade300, fontSize: 14),
                   ),
                 ],

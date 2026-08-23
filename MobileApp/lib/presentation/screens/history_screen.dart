@@ -1,10 +1,10 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:intl/intl.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/constants/api_constants.dart';
 import '../widgets/empty_state.dart';
@@ -98,30 +98,31 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> with SingleTicker
         });
         
         Source source;
-        if (fullUrl.startsWith('http://') || fullUrl.startsWith('https://')) {
+        if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/api/')) {
           source = UrlSource(fullUrl);
-        } else if (File(url).existsSync()) {
-          source = DeviceFileSource(url);
         } else {
-          source = UrlSource(fullUrl);
+          source = DeviceFileSource(url);
         }
 
         await _audioPlayer.play(source);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error playing recording: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
         setState(() {
           _isAudioLoading = false;
         });
+      }
+    } catch (_) {
+      setState(() {
+        _isAudioLoading = false;
+        _playingUrl = null;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Failed to play recording'),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
       }
     }
   }
@@ -130,34 +131,56 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> with SingleTicker
   Widget build(BuildContext context) {
     final history = ref.watch(historyProvider);
 
+    // Compute dynamic stats summary based on loaded list
+    final totalCount = history.calls.length;
+    final incomingCount = history.calls.where((c) => c.callType.toLowerCase() == 'incoming').length;
+    final outgoingCount = history.calls.where((c) => c.callType.toLowerCase() == 'outgoing').length;
+    final missedCount = history.calls.where((c) => c.callType.toLowerCase() == 'missed').length;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0C111D),
       appBar: AppBar(
+        elevation: 0,
+        backgroundColor: const Color(0xFF0C111D),
         title: _showSearch
-            ? TextField(
-                controller: _searchController,
-                autofocus: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: 'Search calls...',
-                  hintStyle: TextStyle(color: Colors.white54),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
+            ? Container(
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1D2939),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF334155).withOpacity(0.5)),
                 ),
-                onChanged: (v) => ref.read(historyProvider.notifier).search(v),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: TextField(
+                  controller: _searchController,
+                  autofocus: true,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: const InputDecoration(
+                    hintText: 'Search contacts or phone numbers...',
+                    hintStyle: TextStyle(color: Colors.white54, fontSize: 13),
+                    border: InputBorder.none,
+                    icon: Icon(Icons.search_rounded, color: Color(0xFF0070F3), size: 18),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  onChanged: (v) => ref.read(historyProvider.notifier).search(v),
+                ),
               )
-            : const Text('Call History', style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF1D2939),
-        foregroundColor: Colors.white,
+            : const Text(
+                'Call History',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white),
+              ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.calendar_today_rounded),
+            icon: Icon(
+              Icons.calendar_today_rounded,
+              color: history.selectedDate != null ? const Color(0xFF0070F3) : Colors.white,
+            ),
             tooltip: 'Filter by date',
             onPressed: () async {
               final picked = await showDatePicker(
                 context: context,
                 initialDate: history.selectedDate ?? DateTime.now(),
-                firstDate: DateTime(2025),
+                firstDate: DateTime(2020),
                 lastDate: DateTime.now().add(const Duration(days: 365)),
                 builder: (context, child) {
                   return Theme(
@@ -179,7 +202,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> with SingleTicker
             },
           ),
           IconButton(
-            icon: Icon(_showSearch ? Icons.close : Icons.search_rounded),
+            icon: Icon(_showSearch ? Icons.close : Icons.search_rounded, color: Colors.white),
             onPressed: () {
               setState(() {
                 _showSearch = !_showSearch;
@@ -191,46 +214,75 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> with SingleTicker
             },
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: false,
-          indicatorColor: const Color(0xFF0070F3),
-          indicatorWeight: 3,
-          labelColor: const Color(0xFF0070F3),
-          unselectedLabelColor: Colors.blueGrey.shade300,
-          labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-          tabs: _tabs.map((t) => Tab(text: t)).toList(),
-        ),
       ),
       body: Column(
         children: [
+          // Custom Pill segmented TabBar container
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1D2939),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFF334155).withOpacity(0.3)),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              dividerColor: Colors.transparent,
+              indicator: BoxDecoration(
+                color: const Color(0xFF0070F3),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.blueGrey.shade400,
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              tabs: _tabs.map((t) => Tab(text: t)).toList(),
+            ),
+          ),
+
+          // Dynamic Overview Stats Row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            child: Row(
+              children: [
+                _buildQuickStatCard('All', totalCount.toString(), const Color(0xFF0070F3)),
+                const SizedBox(width: 8),
+                _buildQuickStatCard('In', incomingCount.toString(), const Color(0xFF10B981)),
+                const SizedBox(width: 8),
+                _buildQuickStatCard('Out', outgoingCount.toString(), const Color(0xFF38BDF8)),
+                const SizedBox(width: 8),
+                _buildQuickStatCard('Missed', missedCount.toString(), const Color(0xFFEF4444)),
+              ],
+            ),
+          ).animate().fadeIn(),
+
           if (history.selectedDate != null)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              color: const Color(0xFF1D2939),
+              margin: const EdgeInsets.fromLTRB(20, 10, 20, 2),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0070F3).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF0070F3).withOpacity(0.2)),
+              ),
               child: Row(
                 children: [
-                  const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF0070F3)),
+                  const Icon(Icons.calendar_today_rounded, size: 14, color: Color(0xFF38bdf8)),
                   const SizedBox(width: 8),
                   Text(
-                    'Date: ${history.selectedDate!.year}-${history.selectedDate!.month.toString().padLeft(2, '0')}-${history.selectedDate!.day.toString().padLeft(2, '0')}',
-                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+                    'Date: ${DateFormat('yyyy-MM-dd').format(history.selectedDate!)}',
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                   const Spacer(),
                   GestureDetector(
                     onTap: () => ref.read(historyProvider.notifier).setDate(null),
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.25),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.close_rounded, size: 14, color: Colors.white70),
-                    ),
+                    child: const Icon(Icons.close_rounded, size: 16, color: Colors.white70),
                   ),
                 ],
               ),
             ),
+
           Expanded(
             child: RefreshIndicator(
               onRefresh: () => ref.read(historyProvider.notifier).loadCalls(
@@ -289,6 +341,32 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> with SingleTicker
       ),
     );
   }
+
+  Widget _buildQuickStatCard(String label, String value, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1D2939),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFF334155).withOpacity(0.2)),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 10, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _GroupedCall {
@@ -323,21 +401,27 @@ class _GroupedCallCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1D2939),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: const Color(0xFF334155).withOpacity(0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Header info
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(16),
             child: Row(
               children: [
                 CircleAvatar(
                   radius: 20,
                   backgroundColor: const Color(0xFF0070F3).withOpacity(0.15),
-                  foregroundColor: const Color(0xFF0070F3),
-                  child: Text(initials, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                  child: Text(
+                    initials,
+                    style: const TextStyle(
+                      color: Color(0xFF38bdf8),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -353,7 +437,7 @@ class _GroupedCallCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           group.contactName,
-                          style: TextStyle(color: Colors.blueGrey.shade300, fontSize: 11),
+                          style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 12),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
@@ -362,26 +446,27 @@ class _GroupedCallCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.25),
+                    color: const Color(0xFF0C111D),
                     borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF334155).withOpacity(0.3)),
                   ),
                   child: Text(
                     '${group.items.length} ${group.items.length == 1 ? "call" : "calls"}',
                     style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 GestureDetector(
                   onTap: () => launchUrl(Uri.parse('tel:${group.phoneNumber}')),
                   child: Container(
-                    padding: const EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      color: const Color(0xFF10B981).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.call, color: Colors.green, size: 16),
+                    child: const Icon(Icons.phone_rounded, color: Color(0xFF10B981), size: 15),
                   ),
                 ),
               ],
@@ -390,15 +475,15 @@ class _GroupedCallCard extends StatelessWidget {
           
           // List of calls inside the group
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Column(
               children: group.items.map((call) {
                 final typeColor = call.callType.toLowerCase() == 'incoming'
-                    ? Colors.blue
+                    ? const Color(0xFF10B981)
                     : call.callType.toLowerCase() == 'outgoing'
                         ? const Color(0xFF0070F3)
                         : call.callType.toLowerCase() == 'missed'
-                            ? Colors.redAccent
+                            ? const Color(0xFFEF4444)
                             : Colors.orange;
 
                 final typeIcon = call.callType.toLowerCase() == 'incoming'
@@ -440,33 +525,40 @@ class _GroupedCallCard extends StatelessWidget {
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
-                    margin: const EdgeInsets.only(top: 6),
-                    padding: const EdgeInsets.all(8),
+                    margin: const EdgeInsets.only(top: 8),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.black12,
+                      color: const Color(0xFF0C111D),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.white.withOpacity(0.02)),
+                      border: Border.all(color: const Color(0xFF334155).withOpacity(0.2)),
                     ),
                     child: Row(
                       children: [
-                        Icon(typeIcon, size: 14, color: typeColor),
-                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: typeColor.withOpacity(0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(typeIcon, size: 12, color: typeColor),
+                        ),
+                        const SizedBox(width: 10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 Formatters.time(call.startTime),
-                                style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w500),
+                                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  Icon(Icons.access_time_rounded, size: 10, color: Colors.blueGrey.shade400),
-                                  const SizedBox(width: 3),
+                                  Icon(Icons.access_time_rounded, size: 12, color: Colors.blueGrey.shade400),
+                                  const SizedBox(width: 4),
                                   Text(
                                     Formatters.duration(call.duration),
-                                    style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 9),
+                                    style: TextStyle(color: Colors.blueGrey.shade400, fontSize: 11),
                                   ),
                                 ],
                               ),
@@ -477,11 +569,11 @@ class _GroupedCallCard extends StatelessWidget {
                           GestureDetector(
                             onTap: () => onPlayToggle(call.recordingPath!),
                             child: Container(
-                              padding: const EdgeInsets.all(6),
+                              padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
                                 color: isThisPlaying 
                                     ? const Color(0xFF0070F3) 
-                                    : const Color(0xFF0070F3).withOpacity(0.1),
+                                    : const Color(0xFF0070F3).withOpacity(0.15),
                                 shape: BoxShape.circle,
                               ),
                               child: isThisLoading
@@ -489,14 +581,14 @@ class _GroupedCallCard extends StatelessWidget {
                                       width: 14,
                                       height: 14,
                                       child: CircularProgressIndicator(
-                                        strokeWidth: 2, 
-                                        color: Color(0xFF0070F3),
+                                        strokeWidth: 2.0, 
+                                        color: Color(0xFF38bdf8),
                                       ),
                                     )
                                   : Icon(
                                       isThisPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                                       size: 14,
-                                      color: isThisPlaying ? Colors.white : const Color(0xFF0070F3),
+                                      color: isThisPlaying ? Colors.white : const Color(0xFF38bdf8),
                                     ),
                             ),
                           ),
